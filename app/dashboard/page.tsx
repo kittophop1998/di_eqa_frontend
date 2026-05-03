@@ -81,6 +81,9 @@ export default function DashboardPage() {
   }, [router]);
 
   const user = auth.getUser();
+  // quiz ที่มี active session อยู่แล้ว → แสดงใน section เซสชันสด ไม่ต้องซ้ำล่าง
+  const activeQuizIds = new Set(active.map((s) => s.quizId));
+  const standaloneQuizzes = quizzes.filter((q) => !activeQuizIds.has(q.id));
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -143,11 +146,11 @@ export default function DashboardPage() {
 
         <section className="mb-8">
           <h2 className="mb-3 text-lg font-semibold">ข้อสอบทั้งหมด</h2>
-          {quizzes.length === 0 ? (
+          {standaloneQuizzes.length === 0 ? (
             <div className="card p-8 text-center text-slate-500">ยังไม่มีข้อสอบในระบบ</div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {quizzes.map((q) => (
+              {standaloneQuizzes.map((q) => (
                 <div key={q.id} className="card flex flex-col p-5">
                   <div className="flex items-center justify-between">
                     <span className="badge bg-brand-100 text-brand-700">{q.category}</span>
