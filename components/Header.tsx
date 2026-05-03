@@ -31,8 +31,8 @@ export default function Header() {
     user?.role === "instructor"
       ? "วิทยากร"
       : user?.role === "admin"
-      ? "ผู้ดูแล"
-      : "ผู้เข้าอบรม";
+        ? "ผู้ดูแล"
+        : "ผู้เข้าอบรม";
 
   return (
     <AppBar position="sticky" color="default" elevation={1} sx={{ bgcolor: "white" }}>
@@ -83,15 +83,17 @@ export default function Header() {
                 Admin
               </Button>
             )}
-            <Button
-              component={Link}
-              href="/dashboard"
-              variant="outlined"
-              size="small"
-              color="secondary"
-            >
-              หน้าหลัก
-            </Button>
+            {(user.role !== "instructor" && user.role !== "admin") && (
+              <Button
+                component={Link}
+                href="/dashboard"
+                variant="outlined"
+                size="small"
+                color="secondary"
+              >
+                Dashboard
+              </Button>
+            )}
             <Button
               onClick={onLogout}
               variant="contained"

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { api } from "@/lib/api";
@@ -31,14 +31,130 @@ type Hospital = {
   province: string;
 };
 
+/* ────────────────────────────────────────────────────────────
+   Modal: เลือก รพ. ก่อนสร้าง session
+──────────────────────────────────────────────────────────── */
+function HospitalPickerModal({
+  hospitals,
+  quizTitle,
+  onConfirm,
+  onCancel,
+  loading,
+}: {
+  hospitals: Hospital[];
+  quizTitle: string;
+  onConfirm: (hospital: Hospital) => void;
+  onCancel: () => void;
+  loading: boolean;
+}) {
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Hospital | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
+  const filtered = hospitals.filter(
+    (h) =>
+      h.name.toLowerCase().includes(search.toLowerCase()) ||
+      h.code.toLowerCase().includes(search.toLowerCase()) ||
+      (h.province ?? "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
+        {/* Header */}
+        <div className="border-b px-6 py-4">
+          <h2 className="text-lg font-bold">เลือกโรงพยาบาล</h2>
+          <p className="mt-0.5 text-sm text-slate-500">
+            สร้างเซสชัน <span className="font-medium text-slate-700">{quizTitle}</span> สำหรับ รพ.ใด?
+          </p>
+        </div>
+
+        {/* Search */}
+        <div className="px-6 pt-4">
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="ค้นหาชื่อ / รหัส รพ. / จังหวัด..."
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        {/* List */}
+        <ul className="mx-6 mt-3 max-h-64 overflow-y-auto rounded-lg border">
+          {filtered.length === 0 && (
+            <li className="p-4 text-center text-sm text-slate-400">ไม่พบโรงพยาบาล</li>
+          )}
+          {filtered.map((h) => (
+            <li key={h.id}>
+              <button
+                className={
+                  "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 " +
+                  (selected?.id === h.id ? "bg-brand-50" : "")
+                }
+                onClick={() => setSelected(h)}
+              >
+                <span
+                  className={
+                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 " +
+                    (selected?.id === h.id
+                      ? "border-brand-600 bg-brand-600"
+                      : "border-slate-300")
+                  }
+                >
+                  {selected?.id === h.id && (
+                    <span className="h-2 w-2 rounded-full bg-white" />
+                  )}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">{h.name}</span>
+                  <span className="text-xs text-slate-400">
+                    {h.code}
+                    {h.province ? ` · ${h.province}` : ""}
+                  </span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-3 px-6 py-4">
+          <button
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
+            onClick={onCancel}
+            disabled={loading}
+          >
+            ยกเลิก
+          </button>
+          <button
+            className="btn-primary px-5 py-2 text-sm disabled:opacity-50"
+            disabled={!selected || loading}
+            onClick={() => selected && onConfirm(selected)}
+          >
+            {loading ? "กำลังสร้าง..." : "สร้างเซสชัน →"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────
+   Admin Page
+──────────────────────────────────────────────────────────── */
 export default function AdminPage() {
   const router = useRouter();
   const [quizzes, setQuizzes] = useState<QuizListItem[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
-  const [creating, setCreating] = useState<string | null>(null);
+  const [pendingQuiz, setPendingQuiz] = useState<QuizListItem | null>(null);
+  const [creating, setCreating] = useState(false);
   const [err, setErr] = useState("");
 
   const refresh = async () => {
@@ -65,28 +181,29 @@ export default function AdminPage() {
     refresh().catch((e) => setErr(e.message));
   }, [router]);
 
-  const handleCreateClick = async (quiz: QuizListItem) => {
-    const u = auth.getUser();
-    if (!u?.hospitalId) {
-      setErr("ไม่พบข้อมูลโรงพยาบาลของบัญชีนี้ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-      return;
-    }
-    setCreating(quiz.id);
+  const handleCreateClick = (quiz: QuizListItem) => {
+    setErr("");
+    setPendingQuiz(quiz);
+  };
+
+  const handleConfirmCreate = async (hospital: Hospital) => {
+    if (!pendingQuiz) return;
+    setCreating(true);
     setErr("");
     try {
       const s = await api<Session>("/api/sessions", {
         method: "POST",
-        body: JSON.stringify({ quizId: quiz.id, hospitalId: u.hospitalId }),
+        body: JSON.stringify({ quizId: pendingQuiz.id, hospitalCode: hospital.code }),
       });
       router.push(`/admin/session/${s.id}`);
     } catch (e: any) {
       setErr(e.message || "สร้างเซสชันไม่สำเร็จ");
     } finally {
-      setCreating(null);
+      setCreating(false);
+      setPendingQuiz(null);
     }
   };
 
-  // หา ชื่อ รพ. จาก hospitalId
   const hospName = (id: string) =>
     hospitals.find((h) => h.id === id)?.name ?? id;
 
@@ -94,12 +211,26 @@ export default function AdminPage() {
     <div className="min-h-screen bg-slate-50">
       <Header />
 
+      {pendingQuiz && (
+        <HospitalPickerModal
+          hospitals={hospitals}
+          quizTitle={pendingQuiz.title}
+          loading={creating}
+          onConfirm={handleConfirmCreate}
+          onCancel={() => setPendingQuiz(null)}
+        />
+      )}
+
       <main className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold">แผงควบคุมวิทยากร</h1>
-          <p className="text-slate-500">สร้างเซสชันสด เปิดข้อสอบให้ผู้เข้าอบรมพร้อมกัน และดูกระดานคะแนนแบบเรียลไทม์</p>
+          <p className="text-slate-500">
+            สร้างเซสชันสด เปิดข้อสอบให้ผู้เข้าอบรมพร้อมกัน และดูกระดานคะแนนแบบเรียลไทม์
+          </p>
         </div>
-        {err && <div className="mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{err}</div>}
+        {err && (
+          <div className="mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{err}</div>
+        )}
 
         <section className="mb-8">
           <h2 className="mb-3 text-lg font-semibold">เลือกข้อสอบเพื่อสร้างเซสชัน</h2>
@@ -109,14 +240,14 @@ export default function AdminPage() {
                 <span className="badge bg-brand-100 text-brand-700">{q.category}</span>
                 <h3 className="mt-3 font-semibold">{q.title}</h3>
                 <div className="mt-1 text-xs text-slate-500">
-                  {q.cellCount} เซลล์ · {Math.floor(q.durationSec / 60)} นาที · ผ่าน {q.passPercent || 80}%
+                  {q.cellCount} เซลล์ · {Math.floor(q.durationSec / 60)} นาที · ผ่าน{" "}
+                  {q.passPercent || 80}%
                 </div>
                 <button
                   className="btn-primary mt-4 w-full"
                   onClick={() => handleCreateClick(q)}
-                  disabled={creating === q.id}
                 >
-                  {creating === q.id ? "กำลังสร้าง..." : "สร้างเซสชันสด"}
+                  🏥 เลือก รพ. และสร้างเซสชัน
                 </button>
               </div>
             ))}
