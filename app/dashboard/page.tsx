@@ -67,7 +67,10 @@ export default function DashboardPage() {
 
     const sock = new LiveSocket();
     sock.connect();
-    sock.join("global");
+    // join hospital room เพื่อรับเฉพาะ session ของ รพ. ตัวเอง
+    const u = auth.getUser();
+    const hospitalRoom = u?.hospitalId ? `hospital:${u.hospitalId}` : "global";
+    sock.join(hospitalRoom);
     const off = sock.on((msg: WSMessage) => {
       if (msg.type === "session:start" && msg.payload) {
         setLiveBanner({ sessionId: msg.payload.sessionId, quizId: msg.payload.quizId });
