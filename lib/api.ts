@@ -1,38 +1,38 @@
-// Frontend talks to the backend through Next.js's same-origin so we don't need
-// to expose a public hostname. We use the rewrites in next.config when needed,
-// but here we reference the public URL via env. In Docker we route browser
-// requests directly to the backend on its host port.
+// lib/api.ts
+// All HTTP calls go through the shared axiosInstance which handles:
+//   - baseURL resolution (browser vs. SSR)
+//   - Authorization header injection
+//   - Unified error normalisation
+//
+// Re-export API_BASE and getWsURL so existing imports still work.
 
-export const API_BASE =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8080")
-    : (process.env.API_BASE || "http://backend:8080");
+import axiosInstance, { API_BASE } from "./axiosInstance";
 
-export type ApiOptions = RequestInit & { auth?: boolean };
+export { API_BASE };
 
-export async function api<T = any>(path: string, opts: ApiOptions = {}): Promise<T> {
-  const headers = new Headers(opts.headers || {});
-  headers.set("Content-Type", "application/json");
-  if (opts.auth !== false && typeof window !== "undefined") {
-    const tok = localStorage.getItem("di_eqa_token");
-    if (tok) headers.set("Authorization", `Bearer ${tok}`);
-  }
+export type ApiOptions = {
+  method?: string;
+  body?: unknown;
+  auth?: boolean; // kept for backward-compat (token is attached by interceptor)
+  params?: Record<string, unknown>;
+  headers?: Record<string, string>;
+};
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...opts,
+export async function api<T = any>(
+  path: string,
+  opts: ApiOptions = {}
+): Promise<T> {
+  const { method = "GET", body, params, headers } = opts;
+
+  const response = await axiosInstance.request<T>({
+    url: path,
+    method,
+    data: body,
+    params,
     headers,
-    cache: "no-store",
   });
 
-  const text = await res.text();
-  let data: any = null;
-  try { data = text ? JSON.parse(text) : null; } catch { /* keep raw */ }
-
-  if (!res.ok) {
-    const msg = (data && (data.error || data.message)) || res.statusText;
-    throw new Error(msg);
-  }
-  return data as T;
+  return response.data;
 }
 
 export function getWsURL(): string {
