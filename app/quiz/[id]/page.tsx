@@ -41,7 +41,7 @@ export default function QuizPage() {
       router.replace("/");
       return;
     }
-    api<Quiz>(`/api/quizzes/${params.id}`)
+    api<Quiz>(`/api/quizzes/${params.id}${sessionId ? `?session=${sessionId}` : ""}`)
       .then((q) => {
         setQuiz(q);
         setSecondsLeft(q.durationSec);
