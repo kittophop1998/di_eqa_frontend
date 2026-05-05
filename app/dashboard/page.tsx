@@ -1,12 +1,35 @@
 "use client";
 
-import Link from "next/link";
+import NextLink from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { api } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { LiveSocket, type WSMessage } from "@/lib/ws";
+
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardActionArea from "@mui/material/CardActionArea";
+import CardContent from "@mui/material/CardContent";
+import Chip from "@mui/material/Chip";
+import Divider from "@mui/material/Divider";
+import Grid from "@mui/material/Grid";
+import Avatar from "@mui/material/Avatar";
+import Alert from "@mui/material/Alert";
+
+import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
+import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
+import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
+import LiveTvOutlinedIcon from "@mui/icons-material/LiveTvOutlined";
+import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
+import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
+import PlayCircleOutlinedIcon from "@mui/icons-material/PlayCircleOutlined";
+import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 
 type QuizListItem = {
   id: string;
@@ -67,7 +90,6 @@ export default function DashboardPage() {
 
     const sock = new LiveSocket();
     sock.connect();
-    // join hospital room เพื่อรับเฉพาะ session ของ รพ. ตัวเอง
     const u = auth.getUser();
     const hospitalRoom = u?.hospitalId ? `hospital:${u.hospitalId}` : "global";
     sock.join(hospitalRoom);
@@ -84,143 +106,249 @@ export default function DashboardPage() {
   }, [router]);
 
   const user = auth.getUser();
-  // quiz ที่มี active session อยู่แล้ว → แสดงใน section เซสชันสด ไม่ต้องซ้ำล่าง
   const activeQuizIds = new Set(active.map((s) => s.quizId));
   const standaloneQuizzes = quizzes.filter((q) => !activeQuizIds.has(q.id));
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       <Header />
 
       {liveBanner && (
-        <div className="bg-emerald-600 text-white">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-            <div className="flex items-center gap-3">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-white" />
-              </span>
-              <div>
-                <div className="font-semibold">วิทยากรเปิดข้อสอบสด!</div>
-                <div className="text-sm opacity-90">เข้าร่วมเซสชันเพื่อทำข้อสอบและขึ้นกระดานคะแนน</div>
-              </div>
-            </div>
-            <Link
+        <Alert
+          icon={<LiveTvOutlinedIcon />}
+          severity="success"
+          variant="filled"
+          sx={{
+            borderRadius: 0,
+            justifyContent: "center",
+            "& .MuiAlert-message": {
+              display: "flex",
+              width: "100%",
+              maxWidth: "75rem",
+              mx: "auto",
+              alignItems: "center",
+              gap: 2,
+            },
+          }}
+        >
+          <Stack direction="row" spacing={2} sx={{ flexGrow: 1, flexWrap: "wrap", alignItems: "center" }}>
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                วิทยากรเปิดข้อสอบสด
+              </Typography>
+              <Typography variant="caption">
+                เข้าร่วมเซสชันเพื่อทำข้อสอบและขึ้นกระดานคะแนน
+              </Typography>
+            </Box>
+            <Box sx={{ flexGrow: 1 }} />
+            <Button
+              component={NextLink}
               href={`/quiz/${liveBanner.quizId}?session=${liveBanner.sessionId}`}
-              className="btn !bg-white !text-emerald-700 !py-2"
+              variant="contained"
+              color="inherit"
+              size="small"
+              sx={{ bgcolor: "common.white", color: "success.dark", "&:hover": { bgcolor: "grey.100" } }}
+              endIcon={<ArrowForwardOutlinedIcon />}
             >
-              เข้าร่วมตอนนี้ →
-            </Link>
-          </div>
-        </div>
+              เข้าร่วมตอนนี้
+            </Button>
+          </Stack>
+        </Alert>
       )}
 
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        <div className="mb-6 flex items-end justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">สวัสดี, {user?.fullName} 👋</h1>
-            <p className="text-slate-500">เลือกข้อสอบที่ต้องการทำหรือดูประวัติคะแนนของคุณ</p>
-          </div>
-        </div>
+      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
+        <Box sx={{ mb: { xs: 3, md: 5 } }}>
+          <Typography variant="h3" sx={{ fontWeight: 700 }}>
+            สวัสดี, {user?.fullName}
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
+            เลือกข้อสอบที่ต้องการทำ หรือดูประวัติคะแนนของคุณ
+          </Typography>
+        </Box>
 
         {active.length > 0 && (
-          <section className="mb-8">
-            <h2 className="mb-3 text-lg font-semibold">เซสชันสด</h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Box sx={{ mb: 5 }}>
+            <SectionHeading icon={<LiveTvOutlinedIcon />} title="เซสชันสดที่กำลังเปิดอยู่" accent="success" />
+            <Grid container spacing={2}>
               {active.map((s) => (
-                <Link
-                  key={s.id}
-                  href={`/quiz/${s.quizId}?session=${s.id}`}
-                  className="card p-4 transition hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="badge bg-emerald-100 text-emerald-700">
-                      {s.status === "running" ? "● กำลังดำเนินการ" : "○ รอเริ่ม"}
-                    </span>
-                    <code className="text-xs text-slate-500">{s.code}</code>
-                  </div>
-                  <div className="mt-2 font-semibold">เซสชันสำหรับการอบรม</div>
-                  <div className="text-sm text-slate-500">เริ่มทำข้อสอบและขึ้นกระดานคะแนน</div>
-                </Link>
+                <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={s.id}>
+                  <Card variant="outlined" sx={{ borderColor: "success.light", bgcolor: "rgba(34,197,94,0.04)" }}>
+                    <CardActionArea component={NextLink} href={`/quiz/${s.quizId}?session=${s.id}`} sx={{ p: 2.5 }}>
+                      <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
+                        <Chip
+                          size="small"
+                          icon={<FiberManualRecordIcon sx={{ fontSize: 10 }} />}
+                          label={s.status === "running" ? "กำลังดำเนินการ" : "รอเริ่ม"}
+                          color={s.status === "running" ? "success" : "warning"}
+                          sx={{ fontWeight: 600 }}
+                        />
+                        <Typography variant="caption" color="text.disabled" sx={{ fontFamily: "monospace" }}>
+                          {s.code}
+                        </Typography>
+                      </Stack>
+                      <Typography variant="subtitle1" sx={{ mt: 1.5, fontWeight: 700 }}>
+                        เข้าร่วมเซสชันสำหรับการอบรม
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        เริ่มทำข้อสอบและขึ้นกระดานคะแนนแบบเรียลไทม์
+                      </Typography>
+                    </CardActionArea>
+                  </Card>
+                </Grid>
               ))}
-            </div>
-          </section>
+            </Grid>
+          </Box>
         )}
 
-        <section className="mb-8">
-          <h2 className="mb-3 text-lg font-semibold">ข้อสอบทั้งหมด</h2>
+        <Box sx={{ mb: 5 }}>
+          <SectionHeading icon={<GridViewOutlinedIcon />} title="ข้อสอบทั้งหมด" />
           {standaloneQuizzes.length === 0 ? (
-            <div className="card p-8 text-center text-slate-500">ยังไม่มีข้อสอบในระบบ</div>
+            <EmptyState text="ยังไม่มีข้อสอบในระบบ" />
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Grid container spacing={2}>
               {standaloneQuizzes.map((q) => (
-                <div key={q.id} className="card flex flex-col p-5">
-                  <div className="flex items-center justify-between">
-                    <span className="badge bg-brand-100 text-brand-700">{q.category}</span>
-                    <span className="text-xs text-slate-500">{q.cellCount} เซลล์</span>
-                  </div>
-                  <h3 className="mt-3 font-semibold leading-snug">{q.title}</h3>
-                  <p className="mt-1 line-clamp-2 text-sm text-slate-500">{q.description}</p>
-                  <div className="mt-3 flex items-center gap-3 text-xs text-slate-500">
-                    <span>⏱ {Math.floor(q.durationSec / 60)} นาที</span>
-                    <span>·</span>
-                    <span>เกณฑ์ผ่าน {q.passPercent || 80}%</span>
-                  </div>
-                  <Link href={`/quiz/${q.id}`} className="btn-primary mt-4">
-                    เริ่มทำข้อสอบ
-                  </Link>
-                </div>
+                <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={q.id}>
+                  <Card variant="outlined" sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+                    <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 1.25 }}>
+                      <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
+                        <Chip size="small" label={q.category} color="primary" variant="outlined" sx={{ fontWeight: 600 }} />
+                        <Typography variant="caption" color="text.secondary">
+                          {q.cellCount} เซลล์
+                        </Typography>
+                      </Stack>
+                      <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                        {q.title}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {q.description}
+                      </Typography>
+                      <Stack direction="row" spacing={1.5} sx={{ color: "text.secondary", mt: "auto", pt: 1, alignItems: "center" }}>
+                        <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+                          <AccessTimeOutlinedIcon sx={{ fontSize: 16 }} />
+                          <Typography variant="caption">{Math.floor(q.durationSec / 60)} นาที</Typography>
+                        </Stack>
+                        <Box sx={{ width: 4, height: 4, borderRadius: "50%", bgcolor: "text.disabled" }} />
+                        <Typography variant="caption">เกณฑ์ผ่าน {q.passPercent || 80}%</Typography>
+                      </Stack>
+                      <Button
+                        component={NextLink}
+                        href={`/quiz/${q.id}`}
+                        variant="contained"
+                        color="primary"
+                        startIcon={<PlayCircleOutlinedIcon />}
+                        sx={{ mt: 1 }}
+                      >
+                        เริ่มทำข้อสอบ
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </Grid>
               ))}
-            </div>
+            </Grid>
           )}
-        </section>
+        </Box>
 
-        <section>
-          <h2 className="mb-3 text-lg font-semibold">ประวัติคะแนน</h2>
+        <Box>
+          <SectionHeading icon={<HistoryOutlinedIcon />} title="ประวัติคะแนน" />
           {history.length === 0 ? (
-            <div className="card p-8 text-center text-slate-500">ยังไม่มีประวัติการทำข้อสอบ</div>
+            <EmptyState text="ยังไม่มีประวัติการทำข้อสอบ" />
           ) : (
-            <div className="card divide-y">
-              {history.map((s) => {
-                const pct = s.percent ?? (s.total > 0 ? Math.round((s.score / s.total) * 100) : 0);
-                return (
-                  <Link
-                    key={s.id}
-                    href={`/submissions/${s.id}`}
-                    className="flex items-center justify-between gap-4 p-4 hover:bg-slate-50"
-                  >
-                    <div>
-                      <div className="font-medium">
-                        จำแนกถูก {s.correct} / {s.total} เซลล์
-                        {s.passed && (
-                          <span className="ml-2 inline-block rounded-full bg-yellow-200 px-2 py-0.5 text-xs font-semibold text-yellow-900">
-                            🎖 ได้ใบประกาศ
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {new Date(s.submittedAt).toLocaleString("th-TH")}
-                      </div>
-                    </div>
-                    <div
-                      className={
-                        "rounded-xl px-3 py-1.5 text-sm font-semibold " +
-                        (pct >= 80
-                          ? "bg-emerald-100 text-emerald-700"
-                          : pct >= 60
-                          ? "bg-amber-100 text-amber-700"
-                          : "bg-rose-100 text-rose-700")
-                      }
-                    >
-                      {pct}%
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
+            <Card variant="outlined">
+              <Stack divider={<Divider />}>
+                {history.map((s) => {
+                  const pct = s.percent ?? (s.total > 0 ? Math.round((s.score / s.total) * 100) : 0);
+                  const tone = pct >= 80 ? "success" : pct >= 60 ? "warning" : "error";
+                  return (
+                    <CardActionArea key={s.id} component={NextLink} href={`/submissions/${s.id}`}>
+                      <Stack
+                        direction="row"
+                        spacing={2}
+                        sx={{ p: 2, alignItems: "center", justifyContent: "space-between" }}
+                      >
+                        <Box sx={{ minWidth: 0 }}>
+                          <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 0.5, alignItems: "center" }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              จำแนกถูก {s.correct} / {s.total} เซลล์
+                            </Typography>
+                            {s.passed && (
+                              <Chip
+                                size="small"
+                                icon={<EmojiEventsOutlinedIcon sx={{ fontSize: 14 }} />}
+                                label="ได้ใบประกาศ"
+                                color="warning"
+                                variant="outlined"
+                                sx={{ fontWeight: 600 }}
+                              />
+                            )}
+                          </Stack>
+                          <Typography variant="caption" color="text.disabled">
+                            {new Date(s.submittedAt).toLocaleString("th-TH")}
+                          </Typography>
+                        </Box>
+                        <Chip
+                          label={`${pct}%`}
+                          color={tone as any}
+                          sx={{ fontWeight: 700, fontSize: "0.85rem", minWidth: 60 }}
+                        />
+                      </Stack>
+                    </CardActionArea>
+                  );
+                })}
+              </Stack>
+            </Card>
           )}
-        </section>
-      </main>
-    </div>
+        </Box>
+      </Container>
+    </Box>
+  );
+}
+
+function SectionHeading({
+  icon,
+  title,
+  accent,
+}: {
+  icon?: React.ReactNode;
+  title: string;
+  accent?: "success" | "primary";
+}) {
+  return (
+    <Stack direction="row" spacing={1.25} sx={{ mb: 2, alignItems: "center" }}>
+      {icon && (
+        <Avatar
+          variant="rounded"
+          sx={{
+            width: 32,
+            height: 32,
+            bgcolor: accent === "success" ? "rgba(34,197,94,0.12)" : "rgba(30,58,138,0.08)",
+            color: accent === "success" ? "success.dark" : "primary.main",
+          }}
+        >
+          {icon}
+        </Avatar>
+      )}
+      <Typography variant="h5" sx={{ fontWeight: 700 }}>
+        {title}
+      </Typography>
+    </Stack>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <Card variant="outlined">
+      <Box sx={{ p: 6, textAlign: "center", color: "text.secondary" }}>
+        <Typography>{text}</Typography>
+      </Box>
+    </Card>
   );
 }

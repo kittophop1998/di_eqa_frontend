@@ -1,10 +1,37 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { auth, type Hospital, type User } from "@/lib/auth";
+
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+import TextField from "@mui/material/TextField";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
+import MenuItem from "@mui/material/MenuItem";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import Alert from "@mui/material/Alert";
+import Divider from "@mui/material/Divider";
+import Link from "@mui/material/Link";
+import CircularProgress from "@mui/material/CircularProgress";
+import Avatar from "@mui/material/Avatar";
+
+import PersonOutlineIcon from "@mui/icons-material/PersonOutlineOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
+import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
+import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
+import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
+import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
+import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 
 type Mode = "user" | "admin";
 
@@ -43,12 +70,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const body: Record<string, string | boolean> = { username, password };
-      if (mode === "user" && selectedHospital) {
-        body.hospitalCode = selectedHospital.code;
-      }
-      if (mode === "admin") {
-        body.isAdmin = true;
-      }
+      if (mode === "user" && selectedHospital) body.hospitalCode = selectedHospital.code;
+      if (mode === "admin") body.isAdmin = true;
       const data = await api<{ token: string; user: User }>("/api/auth/login", {
         method: "POST",
         auth: false,
@@ -65,258 +88,406 @@ export default function LoginPage() {
   };
 
   return (
-    <>
-      {/* Google Font: Sarabun */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
-        .login-root { font-family: 'Sarabun', sans-serif; }
-      `}</style>
-
-      <main
-        className="login-root min-h-screen flex items-center justify-center px-4 py-12"
-        style={{
+    <Box
+      component="main"
+      sx={{
+        minHeight: "100vh",
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr", md: "1.05fr 1fr" },
+        bgcolor: "background.default",
+      }}
+    >
+      {/* ─────────── LEFT: Branding panel ─────────── */}
+      <Box
+        sx={{
+          position: "relative",
+          display: { xs: "none", md: "flex" },
+          flexDirection: "column",
+          justifyContent: "space-between",
+          color: "common.white",
+          px: { md: 6, lg: 9 },
+          py: { md: 6, lg: 8 },
+          overflow: "hidden",
           background:
-            "radial-gradient(ellipse at 20% 50%, #dbeafe 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, #ede9fe 0%, transparent 50%), #F8FAFC",
+            "linear-gradient(135deg, #0B1B45 0%, #172554 35%, #1E3A8A 70%, #1E40AF 100%)",
         }}
       >
-        {/* Subtle dot pattern overlay */}
-        <div
-          className="pointer-events-none fixed inset-0"
-          style={{
+        <Box
+          aria-hidden
+          sx={{
+            position: "absolute",
+            inset: 0,
+            opacity: 0.08,
             backgroundImage:
-              "radial-gradient(circle, #94a3b820 1px, transparent 1px)",
-            backgroundSize: "28px 28px",
+              "radial-gradient(circle at 1px 1px, #ffffff 1px, transparent 0)",
+            backgroundSize: "22px 22px",
+          }}
+        />
+        <Box
+          aria-hidden
+          sx={{
+            position: "absolute",
+            top: -160,
+            right: -120,
+            width: 480,
+            height: 480,
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, rgba(96,165,250,0.35) 0%, rgba(96,165,250,0) 70%)",
+            filter: "blur(8px)",
+          }}
+        />
+        <Box
+          aria-hidden
+          sx={{
+            position: "absolute",
+            bottom: -160,
+            left: -100,
+            width: 420,
+            height: 420,
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, rgba(20,184,166,0.25) 0%, rgba(20,184,166,0) 70%)",
+            filter: "blur(8px)",
           }}
         />
 
-        <div className="relative w-full max-w-md">
-          {/* Logo */}
-          <div className="mb-8 flex flex-col items-center gap-3">
-            <div
-              className="flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-extrabold text-white shadow-lg"
-              style={{ background: "linear-gradient(135deg,#1D4ED8,#3b82f6)" }}
-            >
-              DI
-            </div>
-            <div className="text-center">
-              <h1 className="text-2xl font-bold tracking-tight text-slate-800">
-                DI EQA
-              </h1>
-              <p className="mt-0.5 text-sm text-slate-500">
-                ระบบประเมินความรู้และทำข้อสอบสำหรับการอบรม
-              </p>
-            </div>
-          </div>
-
-          {/* Glassmorphism card */}
-          <div
-            className="rounded-2xl border border-white/70 p-8 shadow-2xl"
-            style={{
-              background: "rgba(255,255,255,0.72)",
-              backdropFilter: "blur(18px)",
-              WebkitBackdropFilter: "blur(18px)",
+        <Stack direction="row" spacing={2} sx={{ position: "relative", alignItems: "center" }}>
+          <Avatar
+            variant="rounded"
+            sx={{
+              width: 52,
+              height: 52,
+              bgcolor: "rgba(255,255,255,0.12)",
+              border: "1px solid rgba(255,255,255,0.25)",
+              fontWeight: 800,
+              fontSize: 18,
+              letterSpacing: "0.04em",
             }}
           >
-            {/* Tab switcher */}
-            <div
-              className="relative mb-7 flex rounded-xl p-1"
-              style={{ background: "#EFF3FB" }}
+            DI
+          </Avatar>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
+              DI EQA
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{ color: "rgba(255,255,255,0.7)", letterSpacing: "0.06em" }}
             >
-              {/* Sliding indicator */}
-              <span
-                className="absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-lg shadow-md transition-all duration-300"
-                style={{
-                  background: "white",
-                  left: mode === "user" ? "4px" : "calc(50%)",
-                }}
-              />
-              {(["user", "admin"] as Mode[]).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => { setMode(m); setErr(""); setUsername(""); setPassword(""); }}
-                  className="relative z-10 flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-colors duration-200"
-                  style={{
-                    color: mode === m ? "#1D4ED8" : "#6B7280",
+              External Quality Assessment
+            </Typography>
+          </Box>
+        </Stack>
+
+        <Stack spacing={3} sx={{ position: "relative", maxWidth: 520 }}>
+          <Typography
+            variant="overline"
+            sx={{ color: "#93C5FD", letterSpacing: "0.22em", fontWeight: 700 }}
+          >
+            ระบบประเมินคุณภาพทางห้องปฏิบัติการ
+          </Typography>
+          <Typography
+            variant="h2"
+            sx={{
+              fontWeight: 800,
+              lineHeight: 1.15,
+              fontSize: { md: "2.25rem", lg: "2.75rem" },
+            }}
+          >
+            ยกระดับมาตรฐานวิชาชีพ
+            <Box component="br" />
+            ด้วยระบบประเมินที่
+            <Box component="span" sx={{ color: "#7DD3FC" }}> เชื่อถือได้</Box>
+          </Typography>
+          <Typography variant="body1" sx={{ color: "rgba(255,255,255,0.78)", lineHeight: 1.7 }}>
+            แพลตฟอร์มกลางสำหรับการอบรมและประเมินความรู้ของบุคลากรห้องปฏิบัติการทางการแพทย์
+            ทำข้อสอบออนไลน์ ได้ผลลัพธ์ทันที พร้อมใบประกาศนียบัตรอย่างเป็นทางการ
+          </Typography>
+
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{ mt: 1, flexWrap: "wrap", rowGap: 2 }}
+          >
+            <FeaturePill icon={<ShieldOutlinedIcon fontSize="small" />} label="ปลอดภัยและมาตรฐาน" />
+            <FeaturePill icon={<HubOutlinedIcon fontSize="small" />} label="ใช้งานทั่วประเทศ" />
+            <FeaturePill icon={<EmojiEventsOutlinedIcon fontSize="small" />} label="ใบประกาศอย่างเป็นทางการ" />
+          </Stack>
+        </Stack>
+
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ position: "relative", color: "rgba(255,255,255,0.55)", alignItems: "center" }}
+        >
+          <VerifiedUserOutlinedIcon sx={{ fontSize: 16 }} />
+          <Typography variant="caption" sx={{ letterSpacing: "0.04em" }}>
+            © {new Date().getFullYear()} DI EQA · All rights reserved.
+          </Typography>
+        </Stack>
+      </Box>
+
+      {/* ─────────── RIGHT: Form panel ─────────── */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          px: { xs: 3, sm: 6, md: 6, lg: 10 },
+          py: { xs: 6, md: 8 },
+        }}
+      >
+        <Paper
+          elevation={0}
+          sx={{
+            width: "100%",
+            maxWidth: 460,
+            p: { xs: 3, sm: 5 },
+            borderRadius: 3,
+            border: { xs: "1px solid", md: "none" },
+            borderColor: "divider",
+            bgcolor: "background.paper",
+          }}
+        >
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{ display: { xs: "flex", md: "none" }, mb: 3, alignItems: "center" }}
+          >
+            <Avatar
+              variant="rounded"
+              sx={{
+                width: 44,
+                height: 44,
+                bgcolor: "primary.main",
+                fontWeight: 800,
+              }}
+            >
+              DI
+            </Avatar>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.15 }}>
+                DI EQA
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                ระบบประเมินคุณภาพห้องปฏิบัติการ
+              </Typography>
+            </Box>
+          </Stack>
+
+          <Typography variant="overline" color="primary.main" sx={{ fontWeight: 700 }}>
+            เข้าสู่ระบบ
+          </Typography>
+          <Typography variant="h4" sx={{ mt: 0.5, fontWeight: 700 }}>
+            ยินดีต้อนรับกลับ
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            กรุณาเลือกประเภทผู้ใช้และกรอกข้อมูลเพื่อเข้าสู่ระบบ
+          </Typography>
+
+          <Tabs
+            value={mode}
+            onChange={(_, v) => {
+              setMode(v as Mode);
+              setErr("");
+              setUsername("");
+              setPassword("");
+            }}
+            variant="fullWidth"
+            sx={{
+              mt: 3,
+              mb: 3,
+              minHeight: 44,
+              "& .MuiTabs-indicator": { height: 3, borderRadius: 2 },
+              borderBottom: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <Tab
+              value="user"
+              icon={<PersonOutlineIcon fontSize="small" />}
+              iconPosition="start"
+              label="ผู้เข้าอบรม"
+              sx={{ minHeight: 44 }}
+            />
+            <Tab
+              value="admin"
+              icon={<AdminPanelSettingsOutlinedIcon fontSize="small" />}
+              iconPosition="start"
+              label="ผู้ดูแลระบบ"
+              sx={{ minHeight: 44 }}
+            />
+          </Tabs>
+
+          <Box component="form" onSubmit={onSubmit} noValidate>
+            <Stack spacing={2.5}>
+              {mode === "user" && (
+                <TextField
+                  select
+                  fullWidth
+                  label="โรงพยาบาล"
+                  required
+                  value={hospitalId}
+                  onChange={(e) => setHospitalId(e.target.value)}
+                  disabled={hospitalsLoading}
+                  helperText={hospitalsLoading ? "กำลังโหลดรายชื่อโรงพยาบาล..." : " "}
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <LocalHospitalOutlinedIcon fontSize="small" color="action" />
+                        </InputAdornment>
+                      ),
+                    },
+                    select: {
+                      displayEmpty: true,
+                      MenuProps: { slotProps: { paper: { sx: { maxHeight: 320 } } } },
+                    },
                   }}
                 >
-                  {m === "user" ? (
-                    <>
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      เข้าสู่ระบบ
-                    </>
-                  ) : (
-                    <>
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                      ผู้ดูแลระบบ
-                    </>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            <form onSubmit={onSubmit} className="space-y-5">
-              {/* Hospital dropdown */}
-              {mode === "user" && (
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                    โรงพยาบาล
-                  </label>
-                  <div className="relative">
-                    {/* hospital icon */}
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                    </span>
-                    {hospitalsLoading ? (
-                      <div
-                        className="flex h-11 w-full items-center rounded-xl border pl-10 text-sm text-slate-400"
-                        style={{ borderColor: "#E2E8F0", background: "#F8FAFC" }}
-                      >
-                        กำลังโหลด...
-                      </div>
-                    ) : (
-                      <select
-                        value={hospitalId}
-                        onChange={(e) => setHospitalId(e.target.value)}
-                        required
-                        className="h-11 w-full appearance-none rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        style={{ borderColor: "#E2E8F0" }}
-                      >
-                        <option value="">-- เลือกโรงพยาบาล --</option>
-                        {hospitals.map((h) => (
-                          <option key={h.id} value={h.id}>
-                            {h.name}{h.province ? ` (${h.province})` : ""}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                </div>
+                  <MenuItem value="" disabled>
+                    -- เลือกโรงพยาบาล --
+                  </MenuItem>
+                  {hospitals.map((h) => (
+                    <MenuItem key={h.id} value={h.id}>
+                      {h.name}
+                      {h.province ? ` (${h.province})` : ""}
+                    </MenuItem>
+                  ))}
+                </TextField>
               )}
 
-              {/* Username */}
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                  ชื่อผู้ใช้
-                </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </span>
-                  <input
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder={mode === "admin" ? "admin" : "เช่น trainee01"}
-                    required
-                    autoFocus
-                    className="h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    style={{ borderColor: "#E2E8F0" }}
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                  รหัสผ่าน
-                </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                    </svg>
-                  </span>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    className="h-11 w-full rounded-xl border bg-white pl-10 pr-11 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    style={{ borderColor: "#E2E8F0" }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? (
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                      </svg>
-                    ) : (
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Error */}
-              {err && (
-                <div className="flex items-center gap-2 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600">
-                  <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  {err}
-                </div>
-              )}
-
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="mt-1 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white shadow-md transition-all duration-200 hover:shadow-lg active:scale-[0.98] disabled:opacity-60"
-                style={{
-                  background: loading
-                    ? "#93c5fd"
-                    : "linear-gradient(135deg,#1D4ED8 0%,#3b82f6 100%)",
+              <TextField
+                fullWidth
+                label="ชื่อผู้ใช้"
+                placeholder={mode === "admin" ? "admin" : "เช่น trainee01"}
+                required
+                autoFocus
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <PersonOutlineIcon fontSize="small" color="action" />
+                      </InputAdornment>
+                    ),
+                  },
                 }}
+              />
+
+              <TextField
+                fullWidth
+                label="รหัสผ่าน"
+                placeholder="••••••••"
+                required
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LockOutlinedIcon fontSize="small" color="action" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword((v) => !v)}
+                          edge="end"
+                          size="small"
+                          tabIndex={-1}
+                          aria-label="toggle password visibility"
+                        >
+                          {showPassword ? (
+                            <VisibilityOffOutlinedIcon fontSize="small" />
+                          ) : (
+                            <VisibilityOutlinedIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+
+              {err && <Alert severity="error">{err}</Alert>}
+
+              <Button
+                type="submit"
+                fullWidth
+                size="large"
+                variant="contained"
+                color="primary"
+                disabled={loading}
+                startIcon={loading ? <CircularProgress size={18} color="inherit" /> : undefined}
+                sx={{ py: 1.5, fontSize: "1rem", mt: 1 }}
               >
-                {loading ? (
-                  <>
-                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
-                    กำลังเข้าสู่ระบบ...
-                  </>
-                ) : (
-                  "เข้าสู่ระบบ"
-                )}
-              </button>
-            </form>
+                {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+              </Button>
+            </Stack>
+          </Box>
 
-            {mode === "user" && (
-              <p className="mt-5 text-center text-sm text-slate-500">
-                ยังไม่มีบัญชี?{" "}
+          {mode === "user" && (
+            <>
+              <Divider sx={{ my: 3 }}>หรือ</Divider>
+              <Typography variant="body2" align="center" color="text.secondary">
+                ยังไม่มีบัญชีผู้ใช้?{" "}
                 <Link
-                  href="/register"
-                  className="font-semibold hover:underline"
-                  style={{ color: "#1D4ED8" }}
+                  component="button"
+                  type="button"
+                  onClick={() => {
+                    if (!selectedHospital) {
+                      setErr("กรุณาเลือกโรงพยาบาลก่อนลงทะเบียน");
+                      return;
+                    }
+                    auth.setHospital(selectedHospital);
+                    router.push("/register");
+                  }}
+                  sx={{ fontWeight: 700, color: "primary.main" }}
                 >
-                  ลงทะเบียน
+                  ลงทะเบียนที่นี่
                 </Link>
-              </p>
-            )}
-          </div>
+              </Typography>
+            </>
+          )}
 
-          <p className="mt-6 text-center text-xs text-slate-400">
-            © {new Date().getFullYear()} DI EQA · ระบบประเมินความชำนาญทางการแพทย์
-          </p>
-        </div>
-      </main>
-    </>
+          <Typography
+            variant="caption"
+            color="text.disabled"
+            align="center"
+            sx={{ display: "block", mt: 4 }}
+          >
+            การใช้งานระบบนี้ถือว่าท่านยอมรับเงื่อนไขและนโยบายการคุ้มครองข้อมูลส่วนบุคคล
+          </Typography>
+        </Paper>
+      </Box>
+    </Box>
+  );
+}
+
+function FeaturePill({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{
+        px: 1.5,
+        py: 0.75,
+        borderRadius: 999,
+        bgcolor: "rgba(255,255,255,0.08)",
+        border: "1px solid rgba(255,255,255,0.16)",
+        color: "rgba(255,255,255,0.92)",
+        backdropFilter: "blur(6px)",
+        alignItems: "center",
+      }}
+    >
+      {icon}
+      <Typography variant="caption" sx={{ fontWeight: 600, letterSpacing: "0.02em" }}>
+        {label}
+      </Typography>
+    </Stack>
   );
 }

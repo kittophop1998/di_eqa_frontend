@@ -1,11 +1,44 @@
 "use client";
 
-import Link from "next/link";
+import NextLink from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { api } from "@/lib/api";
 import { auth } from "@/lib/auth";
+
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Chip from "@mui/material/Chip";
+import Divider from "@mui/material/Divider";
+import Grid from "@mui/material/Grid";
+import Avatar from "@mui/material/Avatar";
+import Alert from "@mui/material/Alert";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import TextField from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemAvatar from "@mui/material/ListItemAvatar";
+import ListItemText from "@mui/material/ListItemText";
+import Radio from "@mui/material/Radio";
+import CircularProgress from "@mui/material/CircularProgress";
+
+import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutlineOutlined";
+import LiveTvOutlinedIcon from "@mui/icons-material/LiveTvOutlined";
+import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
+import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
+import QuizOutlinedIcon from "@mui/icons-material/QuizOutlined";
 
 type QuizListItem = {
   id: string;
@@ -31,16 +64,15 @@ type Hospital = {
   province: string;
 };
 
-/* ────────────────────────────────────────────────────────────
-   Modal: เลือก รพ. ก่อนสร้าง session
-──────────────────────────────────────────────────────────── */
-function HospitalPickerModal({
+function HospitalPickerDialog({
+  open,
   hospitals,
   quizTitle,
   onConfirm,
   onCancel,
   loading,
 }: {
+  open: boolean;
   hospitals: Hospital[];
   quizTitle: string;
   onConfirm: (hospital: Hospital) => void;
@@ -52,8 +84,12 @@ function HospitalPickerModal({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (open) {
+      setSearch("");
+      setSelected(null);
+      setTimeout(() => inputRef.current?.focus(), 80);
+    }
+  }, [open]);
 
   const filtered = hospitals.filter(
     (h) =>
@@ -63,91 +99,94 @@ function HospitalPickerModal({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
-        {/* Header */}
-        <div className="border-b px-6 py-4">
-          <h2 className="text-lg font-bold">เลือกโรงพยาบาล</h2>
-          <p className="mt-0.5 text-sm text-slate-500">
-            สร้างเซสชัน <span className="font-medium text-slate-700">{quizTitle}</span> สำหรับ รพ.ใด?
-          </p>
-        </div>
-
-        {/* Search */}
-        <div className="px-6 pt-4">
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="ค้นหาชื่อ / รหัส รพ. / จังหวัด..."
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        {/* List */}
-        <ul className="mx-6 mt-3 max-h-64 overflow-y-auto rounded-lg border">
-          {filtered.length === 0 && (
-            <li className="p-4 text-center text-sm text-slate-400">ไม่พบโรงพยาบาล</li>
+    <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ pb: 1 }}>
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+          เลือกโรงพยาบาล
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          สร้างเซสชัน <Box component="strong" sx={{ color: "text.primary" }}>{quizTitle}</Box> สำหรับโรงพยาบาลใด?
+        </Typography>
+      </DialogTitle>
+      <DialogContent sx={{ pt: 1 }}>
+        <TextField
+          inputRef={inputRef}
+          fullWidth
+          size="small"
+          placeholder="ค้นหาชื่อ / รหัส รพ. / จังหวัด..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchOutlinedIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+        <Box
+          sx={{
+            mt: 2,
+            maxHeight: 320,
+            overflowY: "auto",
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 1.5,
+          }}
+        >
+          {filtered.length === 0 ? (
+            <Box sx={{ p: 3, textAlign: "center", color: "text.disabled" }}>
+              <Typography variant="body2">ไม่พบโรงพยาบาล</Typography>
+            </Box>
+          ) : (
+            <List dense disablePadding>
+              {filtered.map((h) => {
+                const isSelected = selected?.id === h.id;
+                return (
+                  <ListItemButton key={h.id} selected={isSelected} onClick={() => setSelected(h)}>
+                    <ListItemAvatar sx={{ minWidth: 40 }}>
+                      <Radio checked={isSelected} size="small" />
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {h.name}
+                        </Typography>
+                      }
+                      secondary={
+                        <Typography variant="caption" color="text.disabled">
+                          {h.code}
+                          {h.province ? ` · ${h.province}` : ""}
+                        </Typography>
+                      }
+                    />
+                  </ListItemButton>
+                );
+              })}
+            </List>
           )}
-          {filtered.map((h) => (
-            <li key={h.id}>
-              <button
-                className={
-                  "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 " +
-                  (selected?.id === h.id ? "bg-brand-50" : "")
-                }
-                onClick={() => setSelected(h)}
-              >
-                <span
-                  className={
-                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 " +
-                    (selected?.id === h.id
-                      ? "border-brand-600 bg-brand-600"
-                      : "border-slate-300")
-                  }
-                >
-                  {selected?.id === h.id && (
-                    <span className="h-2 w-2 rounded-full bg-white" />
-                  )}
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate font-medium">{h.name}</span>
-                  <span className="text-xs text-slate-400">
-                    {h.code}
-                    {h.province ? ` · ${h.province}` : ""}
-                  </span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-
-        {/* Footer */}
-        <div className="flex justify-end gap-3 px-6 py-4">
-          <button
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
-            onClick={onCancel}
-            disabled={loading}
-          >
-            ยกเลิก
-          </button>
-          <button
-            className="btn-primary px-5 py-2 text-sm disabled:opacity-50"
-            disabled={!selected || loading}
-            onClick={() => selected && onConfirm(selected)}
-          >
-            {loading ? "กำลังสร้าง..." : "สร้างเซสชัน →"}
-          </button>
-        </div>
-      </div>
-    </div>
+        </Box>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2.5 }}>
+        <Button onClick={onCancel} disabled={loading} variant="outlined" color="secondary">
+          ยกเลิก
+        </Button>
+        <Button
+          onClick={() => selected && onConfirm(selected)}
+          disabled={!selected || loading}
+          variant="contained"
+          color="primary"
+          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <AddCircleOutlineIcon />}
+        >
+          {loading ? "กำลังสร้าง..." : "สร้างเซสชัน"}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
-/* ────────────────────────────────────────────────────────────
-   Admin Page
-──────────────────────────────────────────────────────────── */
 export default function AdminPage() {
   const router = useRouter();
   const [quizzes, setQuizzes] = useState<QuizListItem[]>([]);
@@ -204,94 +243,162 @@ export default function AdminPage() {
     }
   };
 
-  const hospName = (id: string) =>
-    hospitals.find((h) => h.id === id)?.name ?? id;
+  const hospName = (id: string) => hospitals.find((h) => h.id === id)?.name ?? id;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       <Header />
 
-      {pendingQuiz && (
-        <HospitalPickerModal
-          hospitals={hospitals}
-          quizTitle={pendingQuiz.title}
-          loading={creating}
-          onConfirm={handleConfirmCreate}
-          onCancel={() => setPendingQuiz(null)}
-        />
-      )}
+      <HospitalPickerDialog
+        open={Boolean(pendingQuiz)}
+        hospitals={hospitals}
+        quizTitle={pendingQuiz?.title || ""}
+        loading={creating}
+        onConfirm={handleConfirmCreate}
+        onCancel={() => setPendingQuiz(null)}
+      />
 
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">แผงควบคุมวิทยากร</h1>
-          <p className="text-slate-500">
+      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
+        <Box sx={{ mb: { xs: 3, md: 5 } }}>
+          <Typography variant="overline" color="primary.main" sx={{ fontWeight: 700 }}>
+            สำหรับวิทยากร
+          </Typography>
+          <Typography variant="h3" sx={{ fontWeight: 700, mt: 0.5 }}>
+            แผงควบคุมวิทยากร
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
             สร้างเซสชันสด เปิดข้อสอบให้ผู้เข้าอบรมพร้อมกัน และดูกระดานคะแนนแบบเรียลไทม์
-          </p>
-        </div>
+          </Typography>
+        </Box>
+
         {err && (
-          <div className="mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{err}</div>
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {err}
+          </Alert>
         )}
 
-        <section className="mb-8">
-          <h2 className="mb-3 text-lg font-semibold">เลือกข้อสอบเพื่อสร้างเซสชัน</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Box sx={{ mb: 5 }}>
+          <SectionHeading icon={<QuizOutlinedIcon />} title="เลือกข้อสอบเพื่อสร้างเซสชัน" />
+          <Grid container spacing={2}>
             {quizzes.map((q) => (
-              <div key={q.id} className="card p-5">
-                <span className="badge bg-brand-100 text-brand-700">{q.category}</span>
-                <h3 className="mt-3 font-semibold">{q.title}</h3>
-                <div className="mt-1 text-xs text-slate-500">
-                  {q.cellCount} เซลล์ · {Math.floor(q.durationSec / 60)} นาที · ผ่าน{" "}
-                  {q.passPercent || 80}%
-                </div>
-                <button
-                  className="btn-primary mt-4 w-full"
-                  onClick={() => handleCreateClick(q)}
-                >
-                  🏥 เลือก รพ. และสร้างเซสชัน
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <h2 className="mb-3 text-lg font-semibold">เซสชันที่กำลังเปิดอยู่</h2>
-          {sessions.length === 0 ? (
-            <div className="card p-8 text-center text-slate-500">ยังไม่มีเซสชันที่เปิดอยู่</div>
-          ) : (
-            <div className="card divide-y">
-              {sessions.map((s) => (
-                <div key={s.id} className="flex items-center justify-between gap-3 p-4">
-                  <div>
-                    <div className="text-sm text-slate-500">รหัสเซสชัน</div>
-                    <div className="font-mono text-lg font-semibold">{s.code}</div>
-                  </div>
-                  {s.hospitalId && (
-                    <div className="hidden text-sm text-slate-600 sm:block">
-                      🏥 {hospName(s.hospitalId)}
-                    </div>
-                  )}
-                  <div>
-                    <span
-                      className={
-                        "badge " +
-                        (s.status === "running"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-amber-100 text-amber-700")
-                      }
+              <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={q.id}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Chip size="small" label={q.category} color="primary" variant="outlined" sx={{ fontWeight: 600 }} />
+                    <Typography variant="h6" sx={{ fontWeight: 700, mt: 1.5 }}>
+                      {q.title}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+                      {q.cellCount} เซลล์ · {Math.floor(q.durationSec / 60)} นาที · ผ่าน{" "}
+                      {q.passPercent || 80}%
+                    </Typography>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="primary"
+                      startIcon={<LocalHospitalOutlinedIcon />}
+                      onClick={() => handleCreateClick(q)}
+                      sx={{ mt: 2 }}
                     >
-                      {s.status === "running" ? "● กำลังเปิด" : "○ รอเริ่ม"}
-                    </span>
-                  </div>
-                  <Link href={`/admin/session/${s.id}`} className="btn-secondary">
-                    จัดการ →
-                  </Link>
-                </div>
-              ))}
-            </div>
+                      เลือก รพ. และสร้างเซสชัน
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+
+        <Box>
+          <SectionHeading icon={<LiveTvOutlinedIcon />} title="เซสชันที่กำลังเปิดอยู่" accent="success" />
+          {sessions.length === 0 ? (
+            <Card variant="outlined">
+              <Box sx={{ p: 6, textAlign: "center", color: "text.secondary" }}>
+                <Typography>ยังไม่มีเซสชันที่เปิดอยู่</Typography>
+              </Box>
+            </Card>
+          ) : (
+            <Card variant="outlined">
+              <Stack divider={<Divider />}>
+                {sessions.map((s) => (
+                  <Stack
+                    key={s.id}
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={2}
+                    sx={{
+                      p: 2.5,
+                      alignItems: { xs: "flex-start", sm: "center" },
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">
+                        รหัสเซสชัน
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontFamily: "monospace", fontWeight: 700, letterSpacing: "0.08em" }}>
+                        {s.code}
+                      </Typography>
+                    </Box>
+                    {s.hospitalId && (
+                      <Stack direction="row" spacing={1} sx={{ color: "text.secondary", alignItems: "center" }}>
+                        <LocalHospitalOutlinedIcon fontSize="small" />
+                        <Typography variant="body2">{hospName(s.hospitalId)}</Typography>
+                      </Stack>
+                    )}
+                    <Chip
+                      size="small"
+                      icon={<FiberManualRecordIcon sx={{ fontSize: 10 }} />}
+                      label={s.status === "running" ? "กำลังเปิด" : "รอเริ่ม"}
+                      color={s.status === "running" ? "success" : "warning"}
+                      sx={{ fontWeight: 600 }}
+                    />
+                    <Button
+                      component={NextLink}
+                      href={`/admin/session/${s.id}`}
+                      variant="outlined"
+                      size="small"
+                      endIcon={<ArrowForwardOutlinedIcon />}
+                    >
+                      จัดการ
+                    </Button>
+                  </Stack>
+                ))}
+              </Stack>
+            </Card>
           )}
-        </section>
-      </main>
-    </div>
+        </Box>
+      </Container>
+    </Box>
+  );
+}
+
+function SectionHeading({
+  icon,
+  title,
+  accent,
+}: {
+  icon?: React.ReactNode;
+  title: string;
+  accent?: "success" | "primary";
+}) {
+  return (
+    <Stack direction="row" spacing={1.25} sx={{ mb: 2, alignItems: "center" }}>
+      {icon && (
+        <Avatar
+          variant="rounded"
+          sx={{
+            width: 32,
+            height: 32,
+            bgcolor: accent === "success" ? "rgba(34,197,94,0.12)" : "rgba(30,58,138,0.08)",
+            color: accent === "success" ? "success.dark" : "primary.main",
+          }}
+        >
+          {icon}
+        </Avatar>
+      )}
+      <Typography variant="h5" sx={{ fontWeight: 700 }}>
+        {title}
+      </Typography>
+    </Stack>
   );
 }
