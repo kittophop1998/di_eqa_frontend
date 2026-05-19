@@ -45,6 +45,8 @@ import Pagination from "@mui/material/Pagination";
 import Paper from "@mui/material/Paper";
 import Tooltip from "@mui/material/Tooltip";
 import IconButton from "@mui/material/IconButton";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 
 import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
@@ -501,16 +503,28 @@ export default function AdminPage() {
         onCancel={() => setPendingQuiz(null)}
       />
 
-      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 3, md: 6 }, px: { xs: 2, sm: 3 } }}>
         {/* Page heading */}
-        <Box sx={{ mb: { xs: 3, md: 4 } }}>
+        <Box sx={{ mb: { xs: 2.5, md: 4 } }}>
           <Typography variant="overline" color="primary.main" sx={{ fontWeight: 700 }}>
             แผงควบคุม
           </Typography>
-          <Typography variant="h3" sx={{ fontWeight: 700, mt: 0.5 }}>
+          <Typography
+            variant="h3"
+            sx={{
+              fontWeight: 700,
+              mt: 0.5,
+              fontSize: { xs: "1.75rem", sm: "2.25rem", md: "3rem" },
+              lineHeight: 1.2,
+            }}
+          >
             Admin Panel
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography
+            variant="body1"
+            color="text.secondary"
+            sx={{ mt: 0.5, fontSize: { xs: "0.9rem", sm: "1rem" } }}
+          >
             {isSuperAdmin
               ? "จัดการเซสชัน ข้อสอบ และสิทธิ์ผู้ใช้งานระบบ"
               : "สร้างเซสชันสด เปิดข้อสอบให้ผู้เข้าอบรมพร้อมกัน"}
@@ -521,8 +535,11 @@ export default function AdminPage() {
         <Tabs
           value={tabIndex}
           onChange={(_, v) => setTabIndex(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
           sx={{
-            mb: 4,
+            mb: { xs: 2.5, md: 4 },
             borderBottom: "1px solid",
             borderColor: "divider",
             "& .MuiTabs-indicator": { height: 3, borderRadius: 2 },
@@ -722,15 +739,23 @@ function UserManagementPanel({
   onRefresh: () => void;
   updatingRole: string | null;
 }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   return (
     <Box>
       <SectionHeading icon={<PeopleOutlinedIcon />} title="จัดการผู้ใช้งาน" />
 
       {/* Search bar */}
       <Box component="form" onSubmit={onSearch} sx={{ mb: 3 }}>
-        <Stack direction="row" spacing={1.5}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1.5}
+          sx={{ alignItems: { sm: "center" } }}
+        >
           <TextField
             size="small"
+            fullWidth
             placeholder="ค้นหาชื่อ / username / อีเมล..."
             value={searchInput}
             onChange={(e) => onSearchInputChange(e.target.value)}
@@ -743,101 +768,240 @@ function UserManagementPanel({
                 ),
               },
             }}
-            sx={{ flexGrow: 1, maxWidth: 400 }}
+            sx={{ flexGrow: 1, maxWidth: { sm: 400 } }}
           />
-          <Button type="submit" variant="contained" size="small">ค้นหา</Button>
-          <Tooltip title="รีเฟรช">
-            <IconButton size="small" onClick={onRefresh}>
-              <RefreshOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <Button
+              type="submit"
+              variant="contained"
+              size="small"
+              sx={{ flexGrow: { xs: 1, sm: 0 } }}
+            >
+              ค้นหา
+            </Button>
+            <Tooltip title="รีเฟรช">
+              <IconButton size="small" onClick={onRefresh}>
+                <RefreshOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
         </Stack>
       </Box>
 
       {err && <Alert severity="error" sx={{ mb: 2 }}>{err}</Alert>}
 
-      {/* Table */}
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={{ bgcolor: "grey.50" }}>
-                <TableCell sx={{ fontWeight: 700 }}>ชื่อ-นามสกุล / Username</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>อีเมล</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>โรงพยาบาล</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>ประเภท</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>วันที่สมัคร</TableCell>
-                <TableCell sx={{ fontWeight: 700, minWidth: 180 }}>Role</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} sx={{ textAlign: "center", py: 6 }}>
-                    <CircularProgress size={28} />
-                  </TableCell>
-                </TableRow>
-              ) : users.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} sx={{ textAlign: "center", py: 6, color: "text.disabled" }}>
-                    ไม่พบรายชื่อผู้ใช้
-                  </TableCell>
-                </TableRow>
-              ) : (
-                users.map((u) => (
-                  <TableRow key={u.id} hover>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{u.fullName}</Typography>
-                      <Typography variant="caption" color="text.secondary">@{u.username}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">{u.email || "—"}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">{u.hospitalName || "—"}</Typography>
-                    </TableCell>
-                    <TableCell>
+      {/* Mobile: card list / Desktop: table */}
+      {isMobile ? (
+        <Stack spacing={1.5}>
+          {loading ? (
+            <Box sx={{ py: 6, textAlign: "center" }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : users.length === 0 ? (
+            <Paper
+              variant="outlined"
+              sx={{ p: 4, textAlign: "center", borderRadius: 2, color: "text.disabled" }}
+            >
+              <Typography variant="body2">ไม่พบรายชื่อผู้ใช้</Typography>
+            </Paper>
+          ) : (
+            users.map((u) => (
+              <Paper
+                key={u.id}
+                variant="outlined"
+                sx={{ p: 2, borderRadius: 2, bgcolor: "background.paper" }}
+              >
+                <Stack spacing={1.25}>
+                  {/* Header: avatar + name + role chip */}
+                  <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
+                    <Avatar
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        bgcolor: "rgba(30,58,138,0.08)",
+                        color: "primary.main",
+                        fontWeight: 700,
+                        fontSize: 16,
+                      }}
+                    >
+                      {(u.fullName || u.username || "?").charAt(0).toUpperCase()}
+                    </Avatar>
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                        {u.fullName || "—"}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        @{u.username}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      size="small"
+                      label={roleLabel(u.role)}
+                      color={roleChipColor(u.role)}
+                      sx={{ fontWeight: 600, fontSize: 11, flexShrink: 0 }}
+                    />
+                  </Stack>
+
+                  {/* Info rows */}
+                  <Stack spacing={0.5} sx={{ pl: 0.25 }}>
+                    <InfoRow label="อีเมล" value={u.email || "—"} mono />
+                    <InfoRow label="โรงพยาบาล" value={u.hospitalName || "—"} />
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{ alignItems: "center", flexWrap: "wrap" }}
+                    >
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ minWidth: 80 }}
+                      >
+                        ประเภท
+                      </Typography>
                       <Chip
                         size="small"
-                        label={u.memberType === "external" ? "ภายนอก" : u.memberType === "internal" ? "ภายใน" : "—"}
+                        label={
+                          u.memberType === "external"
+                            ? "ภายนอก"
+                            : u.memberType === "internal"
+                            ? "ภายใน"
+                            : "—"
+                        }
                         variant="outlined"
-                        sx={{ fontSize: 11 }}
+                        sx={{ fontSize: 11, height: 22 }}
                       />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="caption">{u.createdAt}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                        <Chip
-                          size="small"
-                          label={roleLabel(u.role)}
-                          color={roleChipColor(u.role)}
-                          sx={{ fontWeight: 600, fontSize: 11 }}
-                        />
-                        <Select
-                          size="small"
-                          value={u.role}
-                          disabled={updatingRole === u.id}
-                          onChange={(e) => onRoleChange(u.id, e.target.value as UserRole)}
-                          sx={{ fontSize: 12, minWidth: 130 }}
-                        >
-                          {ROLE_OPTIONS.map((opt) => (
-                            <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: 13 }}>
-                              {opt.label}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        {updatingRole === u.id && <CircularProgress size={16} />}
-                      </Stack>
+                    </Stack>
+                  </Stack>
+
+                  <Divider />
+
+                  {/* Role change */}
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: "center", justifyContent: "space-between" }}
+                  >
+                    <Typography variant="caption" color="text.secondary">
+                      เปลี่ยน Role
+                    </Typography>
+                    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                      <Select
+                        size="small"
+                        value={u.role}
+                        disabled={updatingRole === u.id}
+                        onChange={(e) => onRoleChange(u.id, e.target.value as UserRole)}
+                        sx={{ fontSize: 12, minWidth: 160 }}
+                      >
+                        {ROLE_OPTIONS.map((opt) => (
+                          <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: 13 }}>
+                            {opt.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {updatingRole === u.id && <CircularProgress size={16} />}
+                    </Stack>
+                  </Stack>
+                </Stack>
+              </Paper>
+            ))
+          )}
+        </Stack>
+      ) : (
+        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: "grey.50" }}>
+                  <TableCell sx={{ fontWeight: 700 }}>ชื่อ-นามสกุล / Username</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>อีเมล</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>โรงพยาบาล</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>ประเภท</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>วันที่สมัคร</TableCell>
+                  <TableCell sx={{ fontWeight: 700, minWidth: 180 }}>Role</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} sx={{ textAlign: "center", py: 6 }}>
+                      <CircularProgress size={28} />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+                ) : users.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      sx={{ textAlign: "center", py: 6, color: "text.disabled" }}
+                    >
+                      ไม่พบรายชื่อผู้ใช้
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  users.map((u) => (
+                    <TableRow key={u.id} hover>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {u.fullName}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          @{u.username}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{u.email || "—"}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{u.hospitalName || "—"}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          size="small"
+                          label={
+                            u.memberType === "external"
+                              ? "ภายนอก"
+                              : u.memberType === "internal"
+                              ? "ภายใน"
+                              : "—"
+                          }
+                          variant="outlined"
+                          sx={{ fontSize: 11 }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="caption">{u.createdAt}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                          <Chip
+                            size="small"
+                            label={roleLabel(u.role)}
+                            color={roleChipColor(u.role)}
+                            sx={{ fontWeight: 600, fontSize: 11 }}
+                          />
+                          <Select
+                            size="small"
+                            value={u.role}
+                            disabled={updatingRole === u.id}
+                            onChange={(e) => onRoleChange(u.id, e.target.value as UserRole)}
+                            sx={{ fontSize: 12, minWidth: 130 }}
+                          >
+                            {ROLE_OPTIONS.map((opt) => (
+                              <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: 13 }}>
+                                {opt.label}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                          {updatingRole === u.id && <CircularProgress size={16} />}
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
@@ -848,6 +1012,7 @@ function UserManagementPanel({
             onChange={onPageChange}
             color="primary"
             shape="rounded"
+            size={isMobile ? "small" : "medium"}
           />
         </Stack>
       )}
@@ -878,6 +1043,9 @@ function AuditLogPanel({
   onPageChange: (e: unknown, page: number) => void;
   onRefresh: () => void;
 }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   return (
     <Box>
       <SectionHeading icon={<HistoryOutlinedIcon />} title="บันทึกการเปลี่ยนแปลง (Audit Log)" />
@@ -887,12 +1055,17 @@ function AuditLogPanel({
       </Typography>
 
       {/* Toolbar */}
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mb: 3, alignItems: { sm: "center" } }}>
+      <Stack
+        direction={{ xs: "row", sm: "row" }}
+        spacing={1}
+        sx={{ mb: 3, alignItems: "center" }}
+      >
         <Select
           size="small"
+          fullWidth
           value={action}
           onChange={(e) => onActionChange(String(e.target.value))}
-          sx={{ minWidth: 200, fontSize: 13 }}
+          sx={{ minWidth: { sm: 200 }, fontSize: 13, maxWidth: { sm: 280 } }}
         >
           {AUDIT_ACTION_OPTIONS.map((opt) => (
             <MenuItem key={opt.value || "all"} value={opt.value} sx={{ fontSize: 13 }}>
@@ -909,52 +1082,64 @@ function AuditLogPanel({
 
       {err && <Alert severity="error" sx={{ mb: 2 }}>{err}</Alert>}
 
-      {/* Table */}
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={{ bgcolor: "grey.50" }}>
-                <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>เวลา</TableCell>
-                <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>ประเภท</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>ผู้กระทำ</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>เป้าหมาย</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>รายละเอียด</TableCell>
-                <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>IP</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} sx={{ textAlign: "center", py: 6 }}>
-                    <CircularProgress size={28} />
-                  </TableCell>
-                </TableRow>
-              ) : logs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} sx={{ textAlign: "center", py: 6, color: "text.disabled" }}>
-                    ยังไม่มีข้อมูล audit log
-                  </TableCell>
-                </TableRow>
-              ) : (
-                logs.map((l) => (
-                  <TableRow key={l.id} hover>
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
-                        {formatAuditTime(l.createdAt)}
+      {/* Mobile: card list / Desktop: table */}
+      {isMobile ? (
+        <Stack spacing={1.5}>
+          {loading ? (
+            <Box sx={{ py: 6, textAlign: "center" }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : logs.length === 0 ? (
+            <Paper
+              variant="outlined"
+              sx={{ p: 4, textAlign: "center", borderRadius: 2, color: "text.disabled" }}
+            >
+              <Typography variant="body2">ยังไม่มีข้อมูล audit log</Typography>
+            </Paper>
+          ) : (
+            logs.map((l) => (
+              <Paper
+                key={l.id}
+                variant="outlined"
+                sx={{ p: 2, borderRadius: 2, bgcolor: "background.paper" }}
+              >
+                <Stack spacing={1.25}>
+                  {/* Header: action chip + time */}
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: 1,
+                    }}
+                  >
+                    <Chip
+                      size="small"
+                      icon={auditActionIcon(l.action)}
+                      label={auditActionLabel(l.action)}
+                      color={auditActionColor(l.action)}
+                      sx={{ fontWeight: 600, fontSize: 11 }}
+                    />
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontFamily: "monospace" }}
+                    >
+                      {formatAuditTime(l.createdAt)}
+                    </Typography>
+                  </Stack>
+
+                  <Divider />
+
+                  {/* Actor → Target */}
+                  <Grid container spacing={1.5}>
+                    <Grid size={{ xs: 6 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                        ผู้กระทำ
                       </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        icon={auditActionIcon(l.action)}
-                        label={auditActionLabel(l.action)}
-                        color={auditActionColor(l.action)}
-                        sx={{ fontWeight: 600, fontSize: 11 }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
                         {l.actorName || "—"}
                       </Typography>
                       {l.actorRole && (
@@ -962,30 +1147,127 @@ function AuditLogPanel({
                           {roleLabel(l.actorRole as UserRole)}
                         </Typography>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">{l.targetName || "—"}</Typography>
+                    </Grid>
+                    <Grid size={{ xs: 6 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                        เป้าหมาย
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
+                        {l.targetName || "—"}
+                      </Typography>
                       {l.metadata?.username && (
                         <Typography variant="caption" color="text.secondary">
                           @{String(l.metadata.username)}
                         </Typography>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <AuditLogDetails action={l.action} metadata={l.metadata} />
-                    </TableCell>
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
-                        {l.ip || "—"}
+                    </Grid>
+                  </Grid>
+
+                  {/* Details */}
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                      รายละเอียด
+                    </Typography>
+                    <AuditLogDetails action={l.action} metadata={l.metadata} />
+                  </Box>
+
+                  {/* IP */}
+                  {l.ip && (
+                    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 40 }}>
+                        IP
                       </Typography>
+                      <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
+                        {l.ip}
+                      </Typography>
+                    </Stack>
+                  )}
+                </Stack>
+              </Paper>
+            ))
+          )}
+        </Stack>
+      ) : (
+        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: "grey.50" }}>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>เวลา</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>ประเภท</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>ผู้กระทำ</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>เป้าหมาย</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>รายละเอียด</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>IP</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} sx={{ textAlign: "center", py: 6 }}>
+                      <CircularProgress size={28} />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+                ) : logs.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      sx={{ textAlign: "center", py: 6, color: "text.disabled" }}
+                    >
+                      ยังไม่มีข้อมูล audit log
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  logs.map((l) => (
+                    <TableRow key={l.id} hover>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>
+                        <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
+                          {formatAuditTime(l.createdAt)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          size="small"
+                          icon={auditActionIcon(l.action)}
+                          label={auditActionLabel(l.action)}
+                          color={auditActionColor(l.action)}
+                          sx={{ fontWeight: 600, fontSize: 11 }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {l.actorName || "—"}
+                        </Typography>
+                        {l.actorRole && (
+                          <Typography variant="caption" color="text.secondary">
+                            {roleLabel(l.actorRole as UserRole)}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{l.targetName || "—"}</Typography>
+                        {l.metadata?.username && (
+                          <Typography variant="caption" color="text.secondary">
+                            @{String(l.metadata.username)}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <AuditLogDetails action={l.action} metadata={l.metadata} />
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>
+                        <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
+                          {l.ip || "—"}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
@@ -996,10 +1278,41 @@ function AuditLogPanel({
             onChange={onPageChange}
             color="primary"
             shape="rounded"
+            size={isMobile ? "small" : "medium"}
           />
         </Stack>
       )}
     </Box>
+  );
+}
+
+// ─── Small info row helper used in mobile user cards ─────────────────────────
+function InfoRow({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start", flexWrap: "wrap" }}>
+      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 80, flexShrink: 0 }}>
+        {label}
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{
+          fontFamily: mono ? "monospace" : undefined,
+          wordBreak: "break-word",
+          flex: 1,
+          minWidth: 0,
+        }}
+      >
+        {value}
+      </Typography>
+    </Stack>
   );
 }
 
