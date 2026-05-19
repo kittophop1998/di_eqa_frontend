@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Sarabun } from "next/font/google";
 import MuiThemeProvider from "@/components/MuiThemeProvider";
+import HandTracker from "@/components/HandTracker";
 
 const sarabun = Sarabun({
   subsets: ["latin", "thai"],
@@ -19,7 +20,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="th" className={sarabun.variable}>
       <body className={sarabun.className}>
-        <MuiThemeProvider>{children}</MuiThemeProvider>
+        <MuiThemeProvider>
+          {children}
+          <HandTracker />
+        </MuiThemeProvider>
       </body>
     </html>
   );
