@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={sarabun.className}>
         <MuiThemeProvider>
           {children}
-          <HandTracker />
+          {/* <HandTracker /> */}
         </MuiThemeProvider>
       </body>
     </html>
