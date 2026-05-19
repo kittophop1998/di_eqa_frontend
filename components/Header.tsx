@@ -39,12 +39,17 @@ export default function Header() {
   };
 
   const roleLabel =
-    user?.role === "instructor"
-      ? "วิทยากร"
+    user?.role === "super_admin"
+      ? "Super Admin"
       : user?.role === "admin"
         ? "ผู้ดูแลระบบ"
-        : "ผู้เข้าอบรม";
-  const isStaff = user?.role === "instructor" || user?.role === "admin";
+        : user?.role === "instructor"
+          ? "วิทยากร"
+          : "ผู้เข้าอบรม";
+  const isStaff =
+    user?.role === "super_admin" ||
+    user?.role === "admin" ||
+    user?.role === "instructor";
 
   return (
     <AppBar position="sticky" color="inherit" elevation={0}>

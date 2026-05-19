@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import NextLink from "next/link";
 import { api } from "@/lib/api";
-import { auth, type Hospital, type User } from "@/lib/auth";
+import { auth, type User } from "@/lib/auth";
 
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
@@ -13,9 +14,6 @@ import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
-import MenuItem from "@mui/material/MenuItem";
-import Tabs from "@mui/material/Tabs";
-import Tab from "@mui/material/Tab";
 import Alert from "@mui/material/Alert";
 import Divider from "@mui/material/Divider";
 import Link from "@mui/material/Link";
@@ -24,64 +22,56 @@ import Avatar from "@mui/material/Avatar";
 
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlineOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
-import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 
-type Mode = "user" | "admin";
-
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("user");
-  const [hospitals, setHospitals] = useState<Hospital[]>([]);
-  const [hospitalId, setHospitalId] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
-  const [hospitalsLoading, setHospitalsLoading] = useState(true);
 
   useEffect(() => {
     if (auth.isAuthed()) {
       router.replace("/dashboard");
-      return;
     }
-    api<Hospital[]>("/api/hospitals", { auth: false })
-      .then((list) => setHospitals(list || []))
-      .catch(() => {})
-      .finally(() => setHospitalsLoading(false));
   }, [router]);
-
-  const selectedHospital = hospitals.find((h) => h.id === hospitalId) ?? null;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === "user" && !selectedHospital) {
-      setErr("กรุณาเลือกโรงพยาบาล");
-      return;
-    }
     setErr("");
     setLoading(true);
     try {
-      const body: Record<string, string | boolean> = { username, password };
-      if (mode === "user" && selectedHospital) body.hospitalCode = selectedHospital.code;
-      if (mode === "admin") body.isAdmin = true;
-      const data = await api<{ token: string; user: User }>("/api/auth/login", {
+      // 1. Authenticate — no hospitalCode needed.
+      const loginData = await api<{ token: string; user: User }>("/api/auth/login", {
         method: "POST",
         auth: false,
-        body: JSON.stringify(body),
+        body: JSON.stringify({ username, password }),
       });
-      if (selectedHospital) auth.setHospital(selectedHospital);
-      auth.setSession(data.token, data.user);
-      router.push(data.user.role === "admin" ? "/admin" : "/dashboard");
+
+      // Store token so the /me call can attach it.
+      localStorage.setItem("di_eqa_token", loginData.token);
+
+      // 2. Fetch full profile (includes hospital + profile fields).
+      const fullUser = await api<User>("/api/auth/me");
+      auth.setSession(loginData.token, fullUser);
+      if (fullUser.hospital) auth.setHospital(fullUser.hospital);
+
+      // Route based on role.
+      const { role } = fullUser;
+      if (role === "super_admin" || role === "admin" || role === "instructor") {
+        router.push("/admin");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (e: any) {
-      setErr(e.message || "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+      setErr(e?.message || "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
     } finally {
       setLoading(false);
     }
@@ -97,7 +87,7 @@ export default function LoginPage() {
         bgcolor: "background.default",
       }}
     >
-      {/* ─────────── LEFT: Branding panel ─────────── */}
+      {/* ─── LEFT: Branding panel ─── */}
       <Box
         sx={{
           position: "relative",
@@ -152,6 +142,7 @@ export default function LoginPage() {
           }}
         />
 
+        {/* Logo */}
         <Stack direction="row" spacing={2} sx={{ position: "relative", alignItems: "center" }}>
           <Avatar
             variant="rounded"
@@ -171,15 +162,13 @@ export default function LoginPage() {
             <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
               DI EQA
             </Typography>
-            <Typography
-              variant="caption"
-              sx={{ color: "rgba(255,255,255,0.7)", letterSpacing: "0.06em" }}
-            >
+            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)", letterSpacing: "0.06em" }}>
               External Quality Assessment
             </Typography>
           </Box>
         </Stack>
 
+        {/* Hero text */}
         <Stack spacing={3} sx={{ position: "relative", maxWidth: 520 }}>
           <Typography
             variant="overline"
@@ -189,11 +178,7 @@ export default function LoginPage() {
           </Typography>
           <Typography
             variant="h2"
-            sx={{
-              fontWeight: 800,
-              lineHeight: 1.15,
-              fontSize: { md: "2.25rem", lg: "2.75rem" },
-            }}
+            sx={{ fontWeight: 800, lineHeight: 1.15, fontSize: { md: "2.25rem", lg: "2.75rem" } }}
           >
             ยกระดับมาตรฐานวิชาชีพ
             <Box component="br" />
@@ -204,12 +189,7 @@ export default function LoginPage() {
             แพลตฟอร์มกลางสำหรับการอบรมและประเมินความรู้ของบุคลากรห้องปฏิบัติการทางการแพทย์
             ทำข้อสอบออนไลน์ ได้ผลลัพธ์ทันที พร้อมใบประกาศนียบัตรอย่างเป็นทางการ
           </Typography>
-
-          <Stack
-            direction="row"
-            spacing={2}
-            sx={{ mt: 1, flexWrap: "wrap", rowGap: 2 }}
-          >
+          <Stack direction="row" spacing={2} sx={{ mt: 1, flexWrap: "wrap", rowGap: 2 }}>
             <FeaturePill icon={<ShieldOutlinedIcon fontSize="small" />} label="ปลอดภัยและมาตรฐาน" />
             <FeaturePill icon={<HubOutlinedIcon fontSize="small" />} label="ใช้งานทั่วประเทศ" />
             <FeaturePill icon={<EmojiEventsOutlinedIcon fontSize="small" />} label="ใบประกาศอย่างเป็นทางการ" />
@@ -228,7 +208,7 @@ export default function LoginPage() {
         </Stack>
       </Box>
 
-      {/* ─────────── RIGHT: Form panel ─────────── */}
+      {/* ─── RIGHT: Form panel ─── */}
       <Box
         sx={{
           display: "flex",
@@ -250,6 +230,7 @@ export default function LoginPage() {
             bgcolor: "background.paper",
           }}
         >
+          {/* Mobile logo */}
           <Stack
             direction="row"
             spacing={1.5}
@@ -257,12 +238,7 @@ export default function LoginPage() {
           >
             <Avatar
               variant="rounded"
-              sx={{
-                width: 44,
-                height: 44,
-                bgcolor: "primary.main",
-                fontWeight: 800,
-              }}
+              sx={{ width: 44, height: 44, bgcolor: "primary.main", fontWeight: 800 }}
             >
               DI
             </Avatar>
@@ -283,87 +259,18 @@ export default function LoginPage() {
             ยินดีต้อนรับกลับ
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            กรุณาเลือกประเภทผู้ใช้และกรอกข้อมูลเพื่อเข้าสู่ระบบ
+            กรอกชื่อผู้ใช้และรหัสผ่านเพื่อเข้าสู่ระบบ
           </Typography>
 
-          <Tabs
-            value={mode}
-            onChange={(_, v) => {
-              setMode(v as Mode);
-              setErr("");
-              setUsername("");
-              setPassword("");
-            }}
-            variant="fullWidth"
-            sx={{
-              mt: 3,
-              mb: 3,
-              minHeight: 44,
-              "& .MuiTabs-indicator": { height: 3, borderRadius: 2 },
-              borderBottom: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            <Tab
-              value="user"
-              icon={<PersonOutlineIcon fontSize="small" />}
-              iconPosition="start"
-              label="ผู้เข้าอบรม"
-              sx={{ minHeight: 44 }}
-            />
-            <Tab
-              value="admin"
-              icon={<AdminPanelSettingsOutlinedIcon fontSize="small" />}
-              iconPosition="start"
-              label="ผู้ดูแลระบบ"
-              sx={{ minHeight: 44 }}
-            />
-          </Tabs>
-
-          <Box component="form" onSubmit={onSubmit} noValidate>
+          <Box component="form" onSubmit={onSubmit} noValidate sx={{ mt: 3.5 }}>
             <Stack spacing={2.5}>
-              {mode === "user" && (
-                <TextField
-                  select
-                  fullWidth
-                  label="โรงพยาบาล"
-                  required
-                  value={hospitalId}
-                  onChange={(e) => setHospitalId(e.target.value)}
-                  disabled={hospitalsLoading}
-                  helperText={hospitalsLoading ? "กำลังโหลดรายชื่อโรงพยาบาล..." : " "}
-                  slotProps={{
-                    input: {
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <LocalHospitalOutlinedIcon fontSize="small" color="action" />
-                        </InputAdornment>
-                      ),
-                    },
-                    select: {
-                      displayEmpty: true,
-                      MenuProps: { slotProps: { paper: { sx: { maxHeight: 320 } } } },
-                    },
-                  }}
-                >
-                  <MenuItem value="" disabled>
-                    -- เลือกโรงพยาบาล --
-                  </MenuItem>
-                  {hospitals.map((h) => (
-                    <MenuItem key={h.id} value={h.id}>
-                      {h.name}
-                      {h.province ? ` (${h.province})` : ""}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              )}
-
               <TextField
                 fullWidth
                 label="ชื่อผู้ใช้"
-                placeholder={mode === "admin" ? "admin" : "เช่น trainee01"}
+                placeholder="เช่น trainee01"
                 required
                 autoFocus
+                autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 slotProps={{
@@ -383,6 +290,7 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 required
                 type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 slotProps={{
@@ -430,29 +338,18 @@ export default function LoginPage() {
             </Stack>
           </Box>
 
-          {mode === "user" && (
-            <>
-              <Divider sx={{ my: 3 }}>หรือ</Divider>
-              <Typography variant="body2" align="center" color="text.secondary">
-                ยังไม่มีบัญชีผู้ใช้?{" "}
-                <Link
-                  component="button"
-                  type="button"
-                  onClick={() => {
-                    if (!selectedHospital) {
-                      setErr("กรุณาเลือกโรงพยาบาลก่อนลงทะเบียน");
-                      return;
-                    }
-                    auth.setHospital(selectedHospital);
-                    router.push("/register");
-                  }}
-                  sx={{ fontWeight: 700, color: "primary.main" }}
-                >
-                  ลงทะเบียนที่นี่
-                </Link>
-              </Typography>
-            </>
-          )}
+          <Divider sx={{ my: 3 }}>หรือ</Divider>
+          <Typography variant="body2" align="center" color="text.secondary">
+            ยังไม่มีบัญชี?{" "}
+            <Link
+              component={NextLink}
+              href="/register"
+              onClick={() => auth.clearHospital()}
+              sx={{ fontWeight: 700, color: "primary.main" }}
+            >
+              สมัครสมาชิกใหม่
+            </Link>
+          </Typography>
 
           <Typography
             variant="caption"

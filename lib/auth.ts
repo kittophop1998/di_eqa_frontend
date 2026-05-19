@@ -8,13 +8,39 @@ export type Hospital = {
   province?: string;
 };
 
+export type MemberType = "internal" | "external";
+
+export type UserAddress = {
+  addressNo?: string;
+  building?: string;
+  subDistrict?: string;
+  district?: string;
+  province?: string;
+  postalCode?: string;
+};
+
+export type UserProfile = {
+  memberType?: MemberType;
+  firstName?: string;
+  lastName?: string;
+  clinic?: string;
+  labName?: string;
+  hospitalType?: string;
+  bedSize?: string;
+  address?: UserAddress;
+  certificateYear?: number;
+};
+
+export type UserRole = "user" | "instructor" | "admin" | "super_admin";
+
 export type User = {
   id: string;
   hospitalId: string;
   username: string;
   fullName: string;
   email?: string;
-  role: "user" | "instructor" | "admin";
+  role: UserRole;
+  profile?: UserProfile;
   hospital?: Hospital;
 };
 
