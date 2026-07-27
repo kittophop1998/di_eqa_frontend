@@ -6,6 +6,9 @@ export type Hospital = {
   name: string;
   logo?: string;
   province?: string;
+  district?: string;
+  subDistrict?: string;
+  postalCode?: string;
 };
 
 export type MemberType = "internal" | "external";

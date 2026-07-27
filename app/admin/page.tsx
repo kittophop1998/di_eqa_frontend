@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { api } from "@/lib/api";
 import { auth, type UserRole } from "@/lib/auth";
+import { THAI_PROVINCES } from "@/lib/registerOptions";
 import {
   EmptyState,
   Eyebrow,
@@ -52,6 +53,8 @@ import MenuItem from "@mui/material/MenuItem";
 import Pagination from "@mui/material/Pagination";
 import Tooltip from "@mui/material/Tooltip";
 import IconButton from "@mui/material/IconButton";
+import Autocomplete from "@mui/material/Autocomplete";
+import TextField from "@mui/material/TextField";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 
@@ -68,6 +71,11 @@ import PersonAddOutlinedIcon from "@mui/icons-material/PersonAddOutlined";
 import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import PersonSearchOutlinedIcon from "@mui/icons-material/PersonSearchOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import DomainAddOutlinedIcon from "@mui/icons-material/DomainAddOutlined";
+import EditLocationAltOutlinedIcon from "@mui/icons-material/EditLocationAltOutlined";
+import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -94,8 +102,49 @@ type Hospital = {
   id: string;
   code: string;
   name: string;
+  logo?: string;
   province: string;
+  district?: string;
+  subDistrict?: string;
+  postalCode?: string;
+  createdAt?: string;
 };
+
+/** The editable shape of a hospital — mirrors the backend request body. */
+type HospitalForm = {
+  code: string;
+  name: string;
+  logo: string;
+  province: string;
+  district: string;
+  subDistrict: string;
+  postalCode: string;
+};
+
+const EMPTY_HOSPITAL_FORM: HospitalForm = {
+  code: "",
+  name: "",
+  logo: "🏥",
+  province: "",
+  district: "",
+  subDistrict: "",
+  postalCode: "",
+};
+
+/**
+ * Renders a hospital's address on one line. Bangkok uses แขวง/เขต where the
+ * rest of the country uses ตำบล/อำเภอ.
+ */
+function addressLine(h: Hospital): string {
+  const bkk = h.province === "กรุงเทพมหานคร";
+  const parts = [
+    h.subDistrict ? `${bkk ? "แขวง" : "ต."}${h.subDistrict}` : "",
+    h.district ? `${bkk ? "เขต" : "อ."}${h.district}` : "",
+    h.province ? (bkk ? h.province : `จ.${h.province}`) : "",
+    h.postalCode || "",
+  ].filter(Boolean);
+  return parts.join(" ") || "—";
+}
 
 type UserItem = {
   id: string;
@@ -141,12 +190,18 @@ const AUDIT_ACTION_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "ทั้งหมด" },
   { value: "user.register", label: "สมัครสมาชิก" },
   { value: "user.role_change", label: "เปลี่ยน Role" },
+  { value: "hospital.create", label: "เพิ่มโรงพยาบาล" },
+  { value: "hospital.update", label: "แก้ไขโรงพยาบาล" },
+  { value: "hospital.delete", label: "ลบโรงพยาบาล" },
 ];
 
 function auditActionLabel(action: string): string {
   switch (action) {
     case "user.register":    return "สมัครสมาชิก";
     case "user.role_change": return "เปลี่ยน Role";
+    case "hospital.create":  return "เพิ่มโรงพยาบาล";
+    case "hospital.update":  return "แก้ไขโรงพยาบาล";
+    case "hospital.delete":  return "ลบโรงพยาบาล";
     default:                 return action;
   }
 }
@@ -155,6 +210,9 @@ function auditActionIcon(action: string) {
   switch (action) {
     case "user.register":    return <PersonAddOutlinedIcon sx={{ fontSize: 14 }} />;
     case "user.role_change": return <SwapHorizOutlinedIcon sx={{ fontSize: 14 }} />;
+    case "hospital.create":  return <DomainAddOutlinedIcon sx={{ fontSize: 14 }} />;
+    case "hospital.update":  return <EditOutlinedIcon sx={{ fontSize: 14 }} />;
+    case "hospital.delete":  return <DeleteOutlineOutlinedIcon sx={{ fontSize: 14 }} />;
     default:                 return <HistoryOutlinedIcon sx={{ fontSize: 14 }} />;
   }
 }
@@ -163,6 +221,9 @@ function auditActionTone(action: string): string {
   switch (action) {
     case "user.register":    return accent.skyDeep;
     case "user.role_change": return accent.warmDeep;
+    case "hospital.create":  return accent.sageDeep;
+    case "hospital.update":  return accent.skyDeep;
+    case "hospital.delete":  return "#C2453D";
     default:                 return paper.steel;
   }
 }
@@ -419,6 +480,19 @@ export default function AdminPage() {
   const [userErr, setUserErr] = useState("");
   const [updatingRole, setUpdatingRole] = useState<string | null>(null);
 
+  // Hospital management state (super_admin only). `hospitals` above is the
+  // single source of truth — the session picker reads the same list.
+  const [hospLoading, setHospLoading] = useState(false);
+  const [hospErr, setHospErr] = useState("");
+  const [hospSearch, setHospSearch] = useState("");
+  const [hospFormOpen, setHospFormOpen] = useState(false);
+  const [hospEditing, setHospEditing] = useState<Hospital | null>(null);
+  const [hospSaving, setHospSaving] = useState(false);
+  const [hospFormErr, setHospFormErr] = useState("");
+  const [hospDeleting, setHospDeleting] = useState<Hospital | null>(null);
+  const [hospDeleteBusy, setHospDeleteBusy] = useState(false);
+  const [hospDeleteErr, setHospDeleteErr] = useState("");
+
   // Audit log state (super_admin only)
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
   const [auditTotal, setAuditTotal] = useState(0);
@@ -484,6 +558,28 @@ export default function AdminPage() {
     }
   }, [tabIndex, isSuperAdmin]);
 
+  const loadHospitals = async () => {
+    setHospLoading(true);
+    setHospErr("");
+    try {
+      const h = await api<Hospital[]>("/api/hospitals");
+      setHospitals(h || []);
+    } catch (e: any) {
+      setHospErr(e?.message || "โหลดรายการโรงพยาบาลไม่สำเร็จ");
+    } finally {
+      setHospLoading(false);
+    }
+  };
+
+  // Refresh hospitals when switching to that tab, so the list reflects edits
+  // made from another session.
+  useEffect(() => {
+    if (tabIndex === 2 && isSuperAdmin) {
+      loadHospitals();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabIndex, isSuperAdmin]);
+
   // Audit log loader — defined outside useEffect so we can call it from
   // buttons (refresh / pagination / filter) as well as from initial mount.
   const loadAuditLogs = async (page = auditPage, action = auditAction) => {
@@ -504,7 +600,7 @@ export default function AdminPage() {
 
   // Load audit logs on switching to that tab.
   useEffect(() => {
-    if (tabIndex === 2 && isSuperAdmin) {
+    if (tabIndex === 3 && isSuperAdmin) {
       setAuditPage(1);
       loadAuditLogs(1, auditAction);
     }
@@ -560,6 +656,54 @@ export default function AdminPage() {
     loadUsers(page, userSearch);
   };
 
+  // ── Hospital management handlers ────────────────────────────────────────────
+  const openHospitalCreate = () => {
+    setHospEditing(null);
+    setHospFormErr("");
+    setHospFormOpen(true);
+  };
+
+  const openHospitalEdit = (h: Hospital) => {
+    setHospEditing(h);
+    setHospFormErr("");
+    setHospFormOpen(true);
+  };
+
+  const handleHospitalSave = async (form: HospitalForm) => {
+    setHospSaving(true);
+    setHospFormErr("");
+    try {
+      const body = JSON.stringify({ ...form, code: form.code.trim().toUpperCase() });
+      if (hospEditing) {
+        await api(`/api/hospitals/${hospEditing.id}`, { method: "PUT", body });
+      } else {
+        await api("/api/hospitals", { method: "POST", body });
+      }
+      setHospFormOpen(false);
+      setHospEditing(null);
+      await loadHospitals();
+    } catch (e: any) {
+      setHospFormErr(e?.message || "บันทึกโรงพยาบาลไม่สำเร็จ");
+    } finally {
+      setHospSaving(false);
+    }
+  };
+
+  const handleHospitalDelete = async () => {
+    if (!hospDeleting) return;
+    setHospDeleteBusy(true);
+    setHospDeleteErr("");
+    try {
+      await api(`/api/hospitals/${hospDeleting.id}`, { method: "DELETE" });
+      setHospDeleting(null);
+      await loadHospitals();
+    } catch (e: any) {
+      setHospDeleteErr(e?.message || "ลบโรงพยาบาลไม่สำเร็จ");
+    } finally {
+      setHospDeleteBusy(false);
+    }
+  };
+
   const handleAuditActionChange = (val: string) => {
     setAuditAction(val);
     setAuditPage(1);
@@ -586,6 +730,26 @@ export default function AdminPage() {
         onCancel={() => setPendingQuiz(null)}
       />
 
+      <HospitalFormDialog
+        open={hospFormOpen}
+        initial={hospEditing}
+        saving={hospSaving}
+        err={hospFormErr}
+        onSave={handleHospitalSave}
+        onCancel={() => {
+          setHospFormOpen(false);
+          setHospEditing(null);
+        }}
+      />
+
+      <HospitalDeleteDialog
+        hospital={hospDeleting}
+        busy={hospDeleteBusy}
+        err={hospDeleteErr}
+        onConfirm={handleHospitalDelete}
+        onCancel={() => setHospDeleting(null)}
+      />
+
       <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 }, px: { xs: 2, sm: 3 } }}>
         {/* ─── Page heading ─── */}
         <Stack spacing={1.5} sx={{ mb: { xs: 3, md: 5 }, ...fadeUp() }}>
@@ -609,12 +773,21 @@ export default function AdminPage() {
           allowScrollButtonsMobile
           sx={{ mb: { xs: 3, md: 4 }, borderBottom: `1px solid ${paper.crease}` }}
         >
-          <Tab label="จัดการเซสชัน" icon={<QuizOutlinedIcon fontSize="small" />} iconPosition="start" />
+          {/* Explicit values keep indices stable while tabs render conditionally. */}
+          <Tab value={0} label="จัดการเซสชัน" icon={<QuizOutlinedIcon fontSize="small" />} iconPosition="start" />
           {isSuperAdmin && (
-            <Tab label="จัดการผู้ใช้" icon={<PeopleOutlinedIcon fontSize="small" />} iconPosition="start" />
+            <Tab value={1} label="จัดการผู้ใช้" icon={<PeopleOutlinedIcon fontSize="small" />} iconPosition="start" />
           )}
           {isSuperAdmin && (
-            <Tab label="Audit Log" icon={<HistoryOutlinedIcon fontSize="small" />} iconPosition="start" />
+            <Tab
+              value={2}
+              label="จัดการโรงพยาบาล"
+              icon={<LocalHospitalOutlinedIcon fontSize="small" />}
+              iconPosition="start"
+            />
+          )}
+          {isSuperAdmin && (
+            <Tab value={3} label="Audit Log" icon={<HistoryOutlinedIcon fontSize="small" />} iconPosition="start" />
           )}
         </Tabs>
 
@@ -767,8 +940,26 @@ export default function AdminPage() {
           />
         )}
 
-        {/* ─── Tab 2: Audit Log (super_admin only) ───────────────────────── */}
+        {/* ─── Tab 2: Hospital management (super_admin only) ─────────────── */}
         {tabIndex === 2 && isSuperAdmin && (
+          <HospitalManagementPanel
+            hospitals={hospitals}
+            loading={hospLoading}
+            err={hospErr}
+            search={hospSearch}
+            onSearchChange={setHospSearch}
+            onRefresh={loadHospitals}
+            onCreate={openHospitalCreate}
+            onEdit={openHospitalEdit}
+            onDelete={(h) => {
+              setHospDeleteErr("");
+              setHospDeleting(h);
+            }}
+          />
+        )}
+
+        {/* ─── Tab 3: Audit Log (super_admin only) ───────────────────────── */}
+        {tabIndex === 3 && isSuperAdmin && (
           <AuditLogPanel
             logs={auditLogs}
             loading={auditLoading}
@@ -1044,6 +1235,504 @@ function UserManagementPanel({
         </Stack>
       )}
     </Box>
+  );
+}
+
+// ─── Hospital Management Panel ───────────────────────────────────────────────
+
+function HospitalManagementPanel({
+  hospitals,
+  loading,
+  err,
+  search,
+  onSearchChange,
+  onRefresh,
+  onCreate,
+  onEdit,
+  onDelete,
+}: {
+  hospitals: Hospital[];
+  loading: boolean;
+  err: string;
+  search: string;
+  onSearchChange: (v: string) => void;
+  onRefresh: () => void;
+  onCreate: () => void;
+  onEdit: (h: Hospital) => void;
+  onDelete: (h: Hospital) => void;
+}) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  // The full list is already in memory (the API caps it at 200), so filtering
+  // client-side keeps typing instant and avoids a request per keystroke.
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? hospitals.filter((h) =>
+        [h.name, h.code, h.province, h.district, h.subDistrict, h.postalCode].some((v) =>
+          (v ?? "").toLowerCase().includes(q)
+        )
+      )
+    : hospitals;
+
+  return (
+    <Box>
+      <SectionHeading
+        icon={<LocalHospitalOutlinedIcon />}
+        title="จัดการโรงพยาบาล"
+        subtitle="เพิ่ม แก้ไข หรือลบโรงพยาบาลที่เข้าร่วมโปรแกรมประเมินคุณภาพ"
+        action={
+          <Button variant="contained" color="primary" startIcon={<DomainAddOutlinedIcon />} onClick={onCreate}>
+            เพิ่มโรงพยาบาล
+          </Button>
+        }
+      />
+
+      {/* Toolbar */}
+      <Stack direction="row" spacing={1} sx={{ mb: 3, alignItems: "flex-end" }}>
+        <Field
+          size="small"
+          label="ค้นหาโรงพยาบาล"
+          placeholder="ค้นหาชื่อ / รหัส / ตำบล / อำเภอ / จังหวัด / รหัสไปรษณีย์..."
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchOutlinedIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={{ maxWidth: { sm: 460 } }}
+        />
+        <Tooltip title="รีเฟรช">
+          <IconButton onClick={onRefresh} sx={{ border: `1px solid ${paper.crease}` }}>
+            <RefreshOutlinedIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
+      {err && <Alert severity="error" sx={{ mb: 2 }}>{err}</Alert>}
+
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5, ...monoSx }}>
+        {filtered.length} / {hospitals.length} รายการ
+      </Typography>
+
+      {/* Mobile: card list / Desktop: table */}
+      {isMobile ? (
+        <Stack spacing={1.5}>
+          {loading ? (
+            [0, 1, 2].map((i) => <PaperSkeleton key={i} height={160} />)
+          ) : filtered.length === 0 ? (
+            <EmptyState
+              icon={<LocalHospitalOutlinedIcon />}
+              title={hospitals.length === 0 ? "ยังไม่มีโรงพยาบาลในระบบ" : "ไม่พบโรงพยาบาลที่ค้นหา"}
+              description={
+                hospitals.length === 0 ? "กด “เพิ่มโรงพยาบาล” เพื่อสร้างรายการแรก" : undefined
+              }
+            />
+          ) : (
+            filtered.map((h, i) => (
+              <PaperCard key={h.id} edge={accent.coral} sx={{ p: 2, ...fadeUp(Math.min(i, 6)) }}>
+                <Stack spacing={1.5}>
+                  <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
+                    <Box
+                      aria-hidden
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        display: "grid",
+                        placeItems: "center",
+                        flexShrink: 0,
+                        clipPath: chevronCut(10),
+                        bgcolor: hexToRgba(accent.coral, 0.12),
+                        fontSize: 18,
+                      }}
+                    >
+                      {h.logo || "🏥"}
+                    </Box>
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                        {h.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={monoSx}>
+                        {h.code}
+                      </Typography>
+                    </Box>
+                  </Stack>
+
+                  <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start" }}>
+                    <EditLocationAltOutlinedIcon sx={{ fontSize: 16, color: paper.steel, mt: 0.25 }} />
+                    <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 0 }}>
+                      {addressLine(h)}
+                    </Typography>
+                  </Stack>
+
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ borderTop: `1px solid ${paper.crease}`, pt: 1.5 }}
+                  >
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<EditOutlinedIcon />}
+                      onClick={() => onEdit(h)}
+                      sx={{ flex: 1 }}
+                    >
+                      แก้ไข
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="error"
+                      startIcon={<DeleteOutlineOutlinedIcon />}
+                      onClick={() => onDelete(h)}
+                      sx={{ flex: 1 }}
+                    >
+                      ลบ
+                    </Button>
+                  </Stack>
+                </Stack>
+              </PaperCard>
+            ))
+          )}
+        </Stack>
+      ) : (
+        <PaperCard sx={{ overflow: "hidden" }}>
+          <TableContainer sx={{ overflowX: "auto" }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>รหัส</TableCell>
+                  <TableCell>ชื่อโรงพยาบาล</TableCell>
+                  <TableCell>ตำบล / แขวง</TableCell>
+                  <TableCell>อำเภอ / เขต</TableCell>
+                  <TableCell>จังหวัด</TableCell>
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>รหัสไปรษณีย์</TableCell>
+                  <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                    จัดการ
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} sx={{ p: 2 }}>
+                      <Stack spacing={1}>
+                        {[0, 1, 2, 3].map((i) => (
+                          <Box key={i} className="paper-skeleton" sx={{ height: 32 }} />
+                        ))}
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} sx={{ textAlign: "center", py: 6, color: "text.disabled" }}>
+                      {hospitals.length === 0 ? "ยังไม่มีโรงพยาบาลในระบบ" : "ไม่พบโรงพยาบาลที่ค้นหา"}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filtered.map((h) => (
+                    <TableRow key={h.id} hover>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>
+                        <Typography variant="caption" sx={{ ...monoSx, fontWeight: 600 }}>
+                          {h.code}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                          <Box component="span" aria-hidden sx={{ fontSize: 15 }}>
+                            {h.logo || "🏥"}
+                          </Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {h.name}
+                          </Typography>
+                        </Stack>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{h.subDistrict || "—"}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{h.district || "—"}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{h.province || "—"}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="caption" sx={monoSx}>
+                          {h.postalCode || "—"}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
+                          <Tooltip title="แก้ไข">
+                            <IconButton size="small" onClick={() => onEdit(h)}>
+                              <EditOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="ลบ">
+                            <IconButton size="small" color="error" onClick={() => onDelete(h)}>
+                              <DeleteOutlineOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </PaperCard>
+      )}
+    </Box>
+  );
+}
+
+// ─── Hospital create / edit dialog ───────────────────────────────────────────
+
+function HospitalFormDialog({
+  open,
+  initial,
+  saving,
+  err,
+  onSave,
+  onCancel,
+}: {
+  open: boolean;
+  initial: Hospital | null;
+  saving: boolean;
+  err: string;
+  onSave: (form: HospitalForm) => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState<HospitalForm>(EMPTY_HOSPITAL_FORM);
+  const [touched, setTouched] = useState(false);
+  const isEdit = Boolean(initial);
+
+  useEffect(() => {
+    if (!open) return;
+    setTouched(false);
+    setForm(
+      initial
+        ? {
+            code: initial.code ?? "",
+            name: initial.name ?? "",
+            logo: initial.logo ?? "",
+            province: initial.province ?? "",
+            district: initial.district ?? "",
+            subDistrict: initial.subDistrict ?? "",
+            postalCode: initial.postalCode ?? "",
+          }
+        : EMPTY_HOSPITAL_FORM
+    );
+  }, [open, initial]);
+
+  const set =
+    (key: keyof HospitalForm) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  const codeMissing = !form.code.trim();
+  const nameMissing = !form.name.trim();
+  const postalInvalid = form.postalCode.trim() !== "" && !/^\d{5}$/.test(form.postalCode.trim());
+  const canSave = !codeMissing && !nameMissing && !postalInvalid;
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setTouched(true);
+    if (!canSave) return;
+    onSave(form);
+  };
+
+  return (
+    <Dialog open={open} onClose={saving ? undefined : onCancel} maxWidth="sm" fullWidth>
+      <Box component="form" onSubmit={submit} noValidate>
+        <DialogTitle sx={{ pb: 1.5 }}>
+          <Eyebrow>{isEdit ? "แก้ไขข้อมูล" : "เพิ่มรายการใหม่"}</Eyebrow>
+          <Typography variant="h5" sx={{ mt: 1.25, fontWeight: 700 }}>
+            {isEdit ? "แก้ไขโรงพยาบาล" : "เพิ่มโรงพยาบาล"}
+          </Typography>
+          {isEdit && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              กำลังแก้ไข{" "}
+              <Box component="strong" sx={{ color: "text.primary" }}>
+                {initial?.name}
+              </Box>
+            </Typography>
+          )}
+        </DialogTitle>
+
+        <DialogContent sx={{ pt: 1 }}>
+          {err && <Alert severity="error" sx={{ mb: 2 }}>{err}</Alert>}
+
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <Field
+                label="รหัสโรงพยาบาล"
+                required
+                placeholder="เช่น HOSP007"
+                value={form.code}
+                onChange={set("code")}
+                error={touched && codeMissing}
+                helperText={touched && codeMissing ? "กรุณากรอกรหัส" : "ระบบจะบันทึกเป็นตัวพิมพ์ใหญ่"}
+                slotProps={{ htmlInput: { style: { textTransform: "uppercase" }, maxLength: 32 } }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 8 }}>
+              <Field
+                label="ชื่อโรงพยาบาล"
+                required
+                placeholder="เช่น โรงพยาบาลตำรวจ"
+                value={form.name}
+                onChange={set("name")}
+                error={touched && nameMissing}
+                helperText={touched && nameMissing ? "กรุณากรอกชื่อโรงพยาบาล" : undefined}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <Field
+                label="แขวง / ตำบล"
+                placeholder="เช่น ศิริราช"
+                value={form.subDistrict}
+                onChange={set("subDistrict")}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <Field
+                label="เขต / อำเภอ"
+                placeholder="เช่น บางกอกน้อย"
+                value={form.district}
+                onChange={set("district")}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FieldShell label="จังหวัด">
+                <Autocomplete
+                  fullWidth
+                  options={THAI_PROVINCES}
+                  value={form.province || null}
+                  onChange={(_, v) => setForm((f) => ({ ...f, province: v ?? "" }))}
+                  slotProps={{ listbox: { sx: { maxHeight: 320, py: 0 } } }}
+                  renderInput={(params) => <TextField {...params} placeholder="เลือกจังหวัด" />}
+                />
+              </FieldShell>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <Field
+                label="รหัสไปรษณีย์"
+                placeholder="เช่น 10700"
+                value={form.postalCode}
+                onChange={set("postalCode")}
+                error={postalInvalid}
+                helperText={postalInvalid ? "ต้องเป็นตัวเลข 5 หลัก" : undefined}
+                slotProps={{
+                  htmlInput: { inputMode: "numeric", maxLength: 5, pattern: "[0-9]{5}" },
+                }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <Field
+                label="สัญลักษณ์"
+                placeholder="🏥"
+                value={form.logo}
+                onChange={set("logo")}
+                helperText="อีโมจิที่แสดงคู่กับชื่อ"
+                slotProps={{ htmlInput: { maxLength: 8 } }}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={onCancel} disabled={saving} variant="outlined">
+            ยกเลิก
+          </Button>
+          <Button
+            type="submit"
+            disabled={saving}
+            variant="contained"
+            color="primary"
+            startIcon={isEdit ? <CheckRoundedIcon /> : <AddCircleOutlineIcon />}
+          >
+            {saving ? "กำลังบันทึก..." : isEdit ? "บันทึกการแก้ไข" : "เพิ่มโรงพยาบาล"}
+          </Button>
+        </DialogActions>
+      </Box>
+    </Dialog>
+  );
+}
+
+// ─── Hospital delete confirmation ────────────────────────────────────────────
+
+function HospitalDeleteDialog({
+  hospital,
+  busy,
+  err,
+  onConfirm,
+  onCancel,
+}: {
+  hospital: Hospital | null;
+  busy: boolean;
+  err: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Dialog open={Boolean(hospital)} onClose={busy ? undefined : onCancel} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ pb: 1.5 }}>
+        <Eyebrow>ยืนยันการลบ</Eyebrow>
+        <Typography variant="h5" sx={{ mt: 1.25, fontWeight: 700 }}>
+          ลบโรงพยาบาล
+        </Typography>
+      </DialogTitle>
+
+      <DialogContent sx={{ pt: 1 }}>
+        {err && <Alert severity="error" sx={{ mb: 2 }}>{err}</Alert>}
+
+        <PaperCard edge="#C2453D" sx={{ p: 2 }}>
+          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+            {hospital?.name}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={monoSx}>
+            {hospital?.code}
+          </Typography>
+          {hospital && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {addressLine(hospital)}
+            </Typography>
+          )}
+        </PaperCard>
+
+        <Stack direction="row" spacing={1} sx={{ mt: 2, alignItems: "flex-start" }}>
+          <WarningAmberOutlinedIcon sx={{ fontSize: 18, color: accent.warmDeep, mt: 0.25 }} />
+          <Typography variant="body2" color="text.secondary">
+            การลบไม่สามารถย้อนกลับได้ และจะทำไม่ได้หากยังมีผู้ใช้สังกัดโรงพยาบาลนี้อยู่
+          </Typography>
+        </Stack>
+      </DialogContent>
+
+      <DialogActions sx={{ px: 3, pb: 2.5 }}>
+        <Button onClick={onCancel} disabled={busy} variant="outlined">
+          ยกเลิก
+        </Button>
+        <Button
+          onClick={onConfirm}
+          disabled={busy}
+          variant="contained"
+          color="error"
+          startIcon={<DeleteOutlineOutlinedIcon />}
+        >
+          {busy ? "กำลังลบ..." : "ลบโรงพยาบาล"}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
@@ -1334,6 +2023,21 @@ function AuditLogDetails({
             {roleLabel(newRole)}
           </Tag>
         )}
+      </Stack>
+    );
+  }
+
+  if (action.startsWith("hospital.")) {
+    const code = metadata.code as string | undefined;
+    const name = metadata.name as string | undefined;
+    const oldName = metadata.oldName as string | undefined;
+    const renamed = Boolean(oldName && name && oldName !== name);
+    return (
+      <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", flexWrap: "wrap", gap: 0.5 }}>
+        {code && <Tag>{code}</Tag>}
+        <Typography variant="caption" color="text.secondary">
+          {renamed ? `${oldName} → ${name}` : name || "—"}
+        </Typography>
       </Stack>
     );
   }
