@@ -101,6 +101,31 @@ const EMPTY_FORM: FormState = {
   certificateYear: "",
 };
 
+/**
+ * Fields an internal member inherits from their hospital. They are filled in
+ * from the hospital record and locked, so a member's organisation/address can
+ * never drift away from the hospital it belongs to.
+ */
+const HOSPITAL_LOCKED_KEYS = [
+  "clinic",
+  "subDistrict",
+  "district",
+  "province",
+  "postalCode",
+] as const;
+
+type HospitalLockedKey = (typeof HOSPITAL_LOCKED_KEYS)[number];
+
+function hospitalDerivedFields(h: Hospital): Pick<FormState, HospitalLockedKey> {
+  return {
+    clinic: h.name ?? "",
+    subDistrict: h.subDistrict ?? "",
+    district: h.district ?? "",
+    province: h.province ?? "",
+    postalCode: h.postalCode ?? "",
+  };
+}
+
 const STEPS = [
   { label: "ประเภทสมาชิก", short: "เริ่มต้น" },
   { label: "ข้อมูลส่วนตัว", short: "บัญชี" },
@@ -126,48 +151,64 @@ export default function RegisterPage() {
 
   const yearOptions = useMemo(() => buildCertificateYearOptions(), []);
 
-  useEffect(() => {
-    setHospitalsLoading(true);
-    api<Hospital[]>("/api/hospitals", { auth: false })
-      .then((list) => setHospitals(list || []))
-      .catch(() => {})
-      .finally(() => setHospitalsLoading(false));
-  }, []);
+  // Internal members inherit their organisation + address from the hospital
+  // record, so those fields are auto-filled and read-only.
+  const lockedByHospital = memberType === "internal" && !!hospital;
 
   useEffect(() => {
-    const h = auth.getHospital();
-    if (h) {
+    // Restore a previously chosen hospital, preferring the freshly fetched
+    // record: a copy cached before hospitals carried address fields would
+    // otherwise leave the locked fields blank with no way to fill them.
+    const restore = (h: Hospital) => {
       setHospital(h);
       setMemberType("internal");
-      setForm((f) => ({
-        ...f,
-        clinic: f.clinic || h.name,
-        province: f.province || h.province || "",
-      }));
-    }
+      setForm((f) => ({ ...f, ...hospitalDerivedFields(h) }));
+    };
+
+    setHospitalsLoading(true);
+    api<Hospital[]>("/api/hospitals", { auth: false })
+      .then((list) => {
+        const fresh = list || [];
+        setHospitals(fresh);
+        const stored = auth.getHospital();
+        if (stored) {
+          restore(fresh.find((h) => h.id === stored.id || h.code === stored.code) ?? stored);
+        }
+      })
+      .catch(() => {
+        const stored = auth.getHospital();
+        if (stored) restore(stored);
+      })
+      .finally(() => setHospitalsLoading(false));
   }, []);
 
   const set =
     (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [k]: e.target.value }));
 
+  /**
+   * Hands the locked fields back to the member. Only values still equal to the
+   * hospital's are cleared, so anything they typed themselves survives.
+   */
+  const releaseHospitalFields = (h: Hospital | null) => {
+    if (!h) return;
+    const derived = hospitalDerivedFields(h);
+    setForm((f) => {
+      const next = { ...f };
+      for (const k of HOSPITAL_LOCKED_KEYS) {
+        if (next[k] === derived[k]) next[k] = "";
+      }
+      return next;
+    });
+  };
+
   const selectMemberType = (value: MemberType) => {
     setErr("");
     setMemberType(value);
     if (value === "external") {
-      if (hospital) {
-        setForm((f) => ({
-          ...f,
-          clinic: f.clinic === hospital.name ? "" : f.clinic,
-          province: f.province === hospital.province ? "" : f.province,
-        }));
-      }
+      releaseHospitalFields(hospital);
     } else if (hospital) {
-      setForm((f) => ({
-        ...f,
-        clinic: f.clinic || hospital.name,
-        province: f.province || hospital.province || "",
-      }));
+      setForm((f) => ({ ...f, ...hospitalDerivedFields(hospital) }));
     }
   };
 
@@ -406,15 +447,16 @@ export default function RegisterPage() {
                         noOptionsText="ไม่พบโรงพยาบาลที่ค้นหา"
                         loadingText="กำลังโหลดรายชื่อโรงพยาบาล..."
                         onChange={(_, selected) => {
-                          setHospital(selected);
                           if (selected) {
                             auth.setHospital(selected);
-                            setForm((f) => ({
-                              ...f,
-                              clinic: f.clinic || selected.name,
-                              province: f.province || selected.province || "",
-                            }));
+                            // Overwrite, don't merge: the locked fields must
+                            // always mirror the hospital that is selected now.
+                            setForm((f) => ({ ...f, ...hospitalDerivedFields(selected) }));
+                          } else {
+                            releaseHospitalFields(hospital);
+                            auth.clearHospital();
                           }
+                          setHospital(selected);
                         }}
                         slotProps={{ listbox: { sx: { maxHeight: 320, py: 0 } } }}
                         renderInput={(params) => {
@@ -657,6 +699,30 @@ export default function RegisterPage() {
             {/* ── Step 2: Org & address ── */}
             {activeStep === 2 && (
               <Stack spacing={2.5}>
+                {lockedByHospital && (
+                  <Box
+                    sx={{
+                      p: 2,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1.5,
+                      bgcolor: hexToRgba(accent.sky, 0.22),
+                      borderLeft: `3px solid ${accent.skyDeep}`,
+                    }}
+                  >
+                    <LockOutlinedIcon sx={{ color: accent.skyDeep, fontSize: 20, mt: 0.25 }} />
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                        ข้อมูลหน่วยงานและที่อยู่ถูกกำหนดจาก {hospital?.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        บุคลากรภายในจะใช้ที่อยู่ของโรงพยาบาลที่สังกัด หากต้องการแก้ไข
+                        กรุณาเปลี่ยนโรงพยาบาลในขั้นตอนแรก หรือเลือกเป็นบุคลากรภายนอก
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+
                 <SectionCard
                   icon={<LocalHospitalOutlinedIcon />}
                   title="ข้อมูลหน่วยงาน"
@@ -670,6 +736,7 @@ export default function RegisterPage() {
                         required
                         value={form.clinic}
                         onChange={set("clinic")}
+                        disabled={lockedByHospital}
                       />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
@@ -744,15 +811,22 @@ export default function RegisterPage() {
                         label="แขวง / ตำบล"
                         value={form.subDistrict}
                         onChange={set("subDistrict")}
+                        disabled={lockedByHospital}
                       />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <Field label="เขต / อำเภอ" value={form.district} onChange={set("district")} />
+                      <Field
+                        label="เขต / อำเภอ"
+                        value={form.district}
+                        onChange={set("district")}
+                        disabled={lockedByHospital}
+                      />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
                       <FieldShell label="จังหวัด">
                         <Autocomplete
                           fullWidth
+                          disabled={lockedByHospital}
                           options={THAI_PROVINCES}
                           value={form.province || null}
                           onChange={(_, v) => setForm((f) => ({ ...f, province: v ?? "" }))}
@@ -769,6 +843,7 @@ export default function RegisterPage() {
                         placeholder="เช่น 92140"
                         value={form.postalCode}
                         onChange={set("postalCode")}
+                        disabled={lockedByHospital}
                         slotProps={{
                           htmlInput: {
                             inputMode: "numeric",
