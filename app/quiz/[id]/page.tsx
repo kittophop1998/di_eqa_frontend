@@ -5,18 +5,26 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import { api } from "@/lib/api";
 import { auth } from "@/lib/auth";
+import { PaperCard, PaperSkeleton } from "@/components/ui";
+import {
+  accent,
+  paper,
+  hexToRgba,
+  chevronCut,
+  monoSx,
+  foldShadow,
+  easing,
+  duration,
+} from "@/lib/design";
 
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import Card from "@mui/material/Card";
-import Chip from "@mui/material/Chip";
 import Alert from "@mui/material/Alert";
 import LinearProgress from "@mui/material/LinearProgress";
 import Grid from "@mui/material/Grid";
-import IconButton from "@mui/material/IconButton";
 
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
@@ -157,7 +165,7 @@ export default function QuizPage() {
 
   if (err && !quiz) {
     return (
-      <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+      <Box sx={{ minHeight: "100dvh", bgcolor: "background.default" }}>
         <Header />
         <Container maxWidth="md" sx={{ py: 8 }}>
           <Alert severity="error">{err}</Alert>
@@ -167,10 +175,14 @@ export default function QuizPage() {
   }
   if (!quiz) {
     return (
-      <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+      <Box sx={{ minHeight: "100dvh", bgcolor: "background.default" }}>
         <Header />
-        <Container maxWidth="md" sx={{ py: 8, color: "text.secondary" }}>
-          <Typography>กำลังโหลดข้อสอบ...</Typography>
+        <Container maxWidth="lg" sx={{ py: 6 }}>
+          <Stack spacing={2}>
+            <PaperSkeleton height={28} width="40%" />
+            <PaperSkeleton height={14} width="65%" />
+            <PaperSkeleton height={420} sx={{ mt: 2 }} />
+          </Stack>
         </Container>
       </Box>
     );
@@ -180,18 +192,18 @@ export default function QuizPage() {
   const lowTime = secondsLeft < 60;
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+    <Box sx={{ minHeight: "100dvh", bgcolor: "background.default" }}>
       <Header />
 
+      {/* ─── Sticky progress rail, docked under the nav ─── */}
       <Box
         sx={{
           position: "sticky",
-          top: 0,
-          zIndex: 10,
-          bgcolor: "rgba(255,255,255,0.95)",
+          top: { xs: 64, sm: 72 },
+          zIndex: 90,
+          bgcolor: hexToRgba(paper.sheet, 0.95),
           backdropFilter: "blur(8px)",
-          borderBottom: "1px solid",
-          borderColor: "divider",
+          borderBottom: `1px solid ${paper.crease}`,
         }}
       >
         <Container maxWidth="xl" sx={{ py: 1.5 }}>
@@ -201,33 +213,36 @@ export default function QuizPage() {
             sx={{ alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", rowGap: 1 }}
           >
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: "0.08em" }}>
+              <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.4 }}>
                 {quiz.category}
               </Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.25 }}>
                 {quiz.title}
               </Typography>
             </Box>
             <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
               <Typography variant="body2" color="text.secondary">
                 จำแนกแล้ว{" "}
-                <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
+                <Box component="span" sx={{ ...monoSx, fontWeight: 700, color: "text.primary" }}>
                   {assignedCount}
-                </Box>{" "}
-                / {totalCells}
+                </Box>
+                <Box component="span" sx={monoSx}>
+                  {" "}
+                  / {totalCells}
+                </Box>
               </Typography>
               <Stack
                 direction="row"
-                spacing={0.5}
+                spacing={0.75}
                 sx={{
                   alignItems: "center",
-                  px: 1.5,
-                  py: 0.75,
-                  borderRadius: 1.5,
-                  fontFamily: "monospace",
+                  px: 1.75,
+                  py: 0.85,
+                  ...monoSx,
                   fontWeight: 700,
-                  bgcolor: lowTime ? "rgba(220,38,38,0.1)" : "rgba(15,23,42,0.06)",
-                  color: lowTime ? "error.dark" : "text.primary",
+                  clipPath: chevronCut(9),
+                  bgcolor: lowTime ? hexToRgba("#C2453D", 0.12) : hexToRgba(paper.ink, 0.06),
+                  color: lowTime ? "#8E2E27" : paper.ink,
                 }}
               >
                 <AccessTimeOutlinedIcon sx={{ fontSize: 18 }} />
@@ -239,69 +254,96 @@ export default function QuizPage() {
         <LinearProgress
           variant="determinate"
           value={progressPct}
-          sx={{ height: 4, "& .MuiLinearProgress-bar": { transition: "transform 0.4s ease" } }}
+          sx={{ height: 4, "& .MuiLinearProgress-bar": { transition: `transform 400ms ${easing}` } }}
         />
       </Box>
 
       <Container maxWidth="xl" sx={{ py: 3 }}>
-        <Alert
-          icon={
-            selectedCell ? <CheckCircleOutlineIcon /> : selectedCategory ? <LightbulbOutlinedIcon /> : <LightbulbOutlinedIcon />
-          }
-          severity={selectedCell ? "info" : selectedCategory ? "warning" : "info"}
-          variant="outlined"
+        {/* ─── Instruction strip ─── */}
+        <Box
           sx={{
             mb: 3,
+            px: 2.5,
+            py: 1.75,
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            flexWrap: "wrap",
+            border: `1px solid ${paper.crease}`,
+            borderLeft: `3px solid ${selectedCell ? accent.coral : selectedCategory ? accent.warmDeep : accent.skyDeep}`,
             bgcolor: selectedCell
-              ? "rgba(30,58,138,0.04)"
+              ? hexToRgba(accent.coral, 0.06)
               : selectedCategory
-                ? "rgba(180,83,9,0.04)"
-                : "background.paper",
+                ? hexToRgba(accent.warm, 0.14)
+                : paper.sheet,
+            transition: `background-color ${duration.hover}ms ${easing}`,
           }}
-          action={
-            (selectedCell || selectedCategory) && (
-              <Button
-                size="small"
-                color="inherit"
-                onClick={() => {
-                  setSelectedCell("");
-                  setSelectedCategory("");
-                }}
-                startIcon={<CloseOutlinedIcon fontSize="small" />}
-              >
-                ยกเลิก
-              </Button>
-            )
-          }
         >
-          {selectedCell ? (
-            <Typography variant="body2">
-              เลือกเซลล์แล้ว — กดที่ <Box component="strong">ชนิดเซลล์ฝั่งขวา</Box> เพื่อจำแนกเข้าหมวด
-            </Typography>
-          ) : selectedCategory ? (
-            <Typography variant="body2">
-              ตั้งชนิดปลายทาง <Box component="strong">{quiz.categories.find((c) => c.key === selectedCategory)?.label}</Box>{" "}
-              ไว้แล้ว — จิ้มเซลล์ที่ต้องการแปะได้เลย
-            </Typography>
-          ) : (
-            <Typography variant="body2">
-              วิธีทำ: <Box component="strong">1)</Box> จิ้มที่รูปเซลล์ฝั่งซ้าย <Box component="strong">2)</Box>{" "}
-              จิ้มที่ชนิดเซลล์ฝั่งขวา → เซลล์จะวาร์ปทันที · จิ้มเซลล์ที่จำแนกไปแล้วเพื่อเอากลับมาแก้ไข
-            </Typography>
+          <Box sx={{ color: selectedCell ? accent.coralInk : paper.steel, display: "flex" }}>
+            {selectedCell ? <CheckCircleOutlineIcon /> : <LightbulbOutlinedIcon />}
+          </Box>
+          {/* minWidth 0 keeps the icon and copy on one line; Thai has no word
+              breaks, so min-content would otherwise force a wrap on mobile. */}
+          <Box sx={{ flexGrow: 1, minWidth: 0, wordBreak: "break-word" }}>
+            {selectedCell ? (
+              <Typography variant="body2">
+                เลือกเซลล์แล้ว — กดที่ <Box component="strong">ชนิดเซลล์ฝั่งขวา</Box> เพื่อจำแนกเข้าหมวด
+              </Typography>
+            ) : selectedCategory ? (
+              <Typography variant="body2">
+                ตั้งชนิดปลายทาง{" "}
+                <Box component="strong">
+                  {quiz.categories.find((c) => c.key === selectedCategory)?.label}
+                </Box>{" "}
+                ไว้แล้ว — จิ้มเซลล์ที่ต้องการแปะได้เลย
+              </Typography>
+            ) : (
+              <Typography variant="body2">
+                วิธีทำ: <Box component="strong">1)</Box> จิ้มที่รูปเซลล์ฝั่งซ้าย{" "}
+                <Box component="strong">2)</Box> จิ้มที่ชนิดเซลล์ฝั่งขวา → เซลล์จะวาร์ปทันที ·
+                จิ้มเซลล์ที่จำแนกไปแล้วเพื่อเอากลับมาแก้ไข
+              </Typography>
+            )}
+          </Box>
+          {(selectedCell || selectedCategory) && (
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                setSelectedCell("");
+                setSelectedCategory("");
+              }}
+              startIcon={<CloseOutlinedIcon fontSize="small" />}
+            >
+              ยกเลิก
+            </Button>
           )}
-        </Alert>
+        </Box>
 
         <Grid container spacing={2.5}>
+          {/* ─── Cell tray ─── */}
           <Grid size={{ xs: 12, lg: 8 }}>
-            <Card variant="outlined" sx={{ p: 2.5 }}>
-              <Stack
-                direction="row"
-                sx={{ mb: 2, alignItems: "center", justifyContent: "space-between" }}
-              >
+            <PaperCard sx={{ p: 2.5 }}>
+              <Stack direction="row" sx={{ mb: 2, alignItems: "center", justifyContent: "space-between" }}>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   เซลล์ที่ยังไม่ได้จำแนก
                 </Typography>
-                <Chip label={`เหลือ ${remaining} ใบ`} size="small" />
+                <Box
+                  sx={{
+                    px: 1.5,
+                    py: 0.4,
+                    clipPath: chevronCut(7),
+                    bgcolor: hexToRgba(paper.ink, 0.06),
+                    fontSize: "0.8125rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  เหลือ{" "}
+                  <Box component="span" sx={monoSx}>
+                    {remaining}
+                  </Box>{" "}
+                  ใบ
+                </Box>
               </Stack>
 
               {remaining === 0 ? (
@@ -329,24 +371,25 @@ export default function QuizPage() {
                         <Box
                           key={cell.id}
                           component="button"
+                          type="button"
                           onClick={() => onCellTap(cell.id)}
                           aria-label={`เซลล์ ${cell.id}`}
+                          aria-pressed={isSelected}
                           sx={{
                             position: "relative",
                             aspectRatio: "1 / 1",
                             overflow: "hidden",
-                            borderRadius: 1.5,
-                            border: "2px solid",
-                            borderColor: isSelected ? "primary.main" : "divider",
-                            boxShadow: isSelected ? "0 0 0 4px rgba(30,58,138,0.15)" : "none",
-                            transform: isSelected ? "scale(1.04)" : "none",
-                            transition: "all 0.18s ease",
-                            cursor: "pointer",
-                            background: "white",
                             p: 0,
+                            cursor: "pointer",
+                            background: paper.sheet,
+                            border: `2px solid ${isSelected ? accent.coral : paper.crease}`,
+                            boxShadow: isSelected ? foldShadow.accent : "none",
+                            transform: isSelected ? "translateY(-3px)" : "none",
+                            transition: `transform ${duration.hover}ms ${easing}, box-shadow ${duration.hover}ms ${easing}, border-color ${duration.hover}ms ${easing}`,
                             "&:hover": {
-                              borderColor: isSelected ? "primary.main" : "primary.light",
-                              boxShadow: "0 4px 12px rgba(15,23,42,0.08)",
+                              borderColor: accent.coral,
+                              transform: "translateY(-3px)",
+                              boxShadow: foldShadow.lift,
                             },
                           }}
                         >
@@ -355,26 +398,24 @@ export default function QuizPage() {
                             src={cell.imageUrl}
                             alt={cell.id}
                             draggable={false}
-                            sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                           />
                           {isSelected && (
                             <Box
                               sx={{
                                 position: "absolute",
-                                left: 4,
-                                right: 4,
-                                bottom: 4,
-                                px: 0.5,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
                                 py: 0.25,
-                                borderRadius: 0.75,
-                                bgcolor: "primary.main",
-                                color: "common.white",
+                                bgcolor: accent.coral,
+                                color: paper.ink,
                                 fontSize: 10,
                                 fontWeight: 700,
                                 textAlign: "center",
                               }}
                             >
-                              เลือกอยู่ ✓
+                              เลือกอยู่
                             </Box>
                           )}
                         </Box>
@@ -384,11 +425,8 @@ export default function QuizPage() {
               )}
 
               {assignedCount > 0 && (
-                <Box sx={{ mt: 3, pt: 2.5, borderTop: "1px solid", borderColor: "divider" }}>
-                  <Stack
-                    direction="row"
-                    sx={{ mb: 1.5, alignItems: "center", justifyContent: "space-between" }}
-                  >
+                <Box sx={{ mt: 3, pt: 2.5, borderTop: `1px solid ${paper.crease}` }}>
+                  <Stack direction="row" sx={{ mb: 1.5, alignItems: "center", justifyContent: "space-between" }}>
                     <Typography variant="caption" color="text.secondary">
                       จำแนกไปแล้ว ({assignedCount}) — กดเพื่อนำกลับมาแก้
                     </Typography>
@@ -422,19 +460,18 @@ export default function QuizPage() {
                         <Box
                           key={cell.id}
                           component="button"
+                          type="button"
                           onClick={() => onCellTap(cell.id)}
                           title={`${cell.id} → ${cat?.label}`}
                           sx={{
                             position: "relative",
                             aspectRatio: "1 / 1",
                             overflow: "hidden",
-                            borderRadius: 1,
-                            border: "1px solid",
-                            borderColor: "divider",
-                            opacity: 0.75,
-                            cursor: "pointer",
                             p: 0,
-                            transition: "opacity 0.15s ease",
+                            cursor: "pointer",
+                            border: `1px solid ${paper.crease}`,
+                            opacity: 0.72,
+                            transition: `opacity ${duration.hover}ms ${easing}`,
                             "&:hover": { opacity: 1 },
                           }}
                         >
@@ -442,7 +479,7 @@ export default function QuizPage() {
                             component="img"
                             src={cell.imageUrl}
                             alt={cell.id}
-                            sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                           />
                           <Box
                             sx={{
@@ -454,9 +491,9 @@ export default function QuizPage() {
                               py: "1px",
                               fontSize: 8,
                               fontWeight: 700,
-                              color: "common.white",
+                              color: paper.white,
                               textAlign: "center",
-                              backgroundColor: cat?.color || "#475569",
+                              backgroundColor: cat?.color || paper.steel,
                               overflow: "hidden",
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap",
@@ -470,12 +507,13 @@ export default function QuizPage() {
                   </Box>
                 </Box>
               )}
-            </Card>
+            </PaperCard>
           </Grid>
 
+          {/* ─── Category rail ─── */}
           <Grid size={{ xs: 12, lg: 4 }}>
-            <Stack spacing={2}>
-              <Card variant="outlined" sx={{ p: 2.5 }}>
+            <Stack spacing={2} sx={{ position: { lg: "sticky" }, top: { lg: 160 } }}>
+              <PaperCard sx={{ p: 2.5 }}>
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
                   ชนิดของเซลล์ (จิ้มเพื่อแปะ)
                 </Typography>
@@ -487,7 +525,9 @@ export default function QuizPage() {
                       <Box
                         key={cat.key}
                         component="button"
+                        type="button"
                         onClick={() => onCategoryTap(cat.key)}
+                        aria-pressed={isSelected}
                         sx={{
                           display: "flex",
                           alignItems: "center",
@@ -495,41 +535,33 @@ export default function QuizPage() {
                           width: "100%",
                           px: 2,
                           py: 1.5,
-                          borderRadius: 1.5,
-                          border: "2px solid",
-                          borderColor: isSelected
-                            ? "warning.main"
-                            : isPrimed
-                              ? "primary.light"
-                              : "divider",
-                          bgcolor: isSelected
-                            ? "rgba(245,158,11,0.08)"
-                            : "background.paper",
-                          boxShadow: isSelected ? "0 0 0 3px rgba(245,158,11,0.18)" : "none",
                           textAlign: "left",
                           cursor: "pointer",
-                          transition: "all 0.15s ease",
-                          "&:hover": {
-                            borderColor: isSelected
-                              ? "warning.main"
-                              : isPrimed
-                                ? "primary.main"
-                                : "secondary.light",
-                            bgcolor: isSelected
-                              ? "rgba(245,158,11,0.1)"
-                              : isPrimed
-                                ? "rgba(30,58,138,0.04)"
-                                : "background.paper",
-                          },
+                          border: `1px solid ${
+                            isSelected ? accent.warmDeep : isPrimed ? accent.coral : paper.crease
+                          }`,
+                          borderLeft: `4px solid ${cat.color}`,
+                          bgcolor: isSelected
+                            ? hexToRgba(accent.warm, 0.22)
+                            : isPrimed
+                              ? hexToRgba(accent.coral, 0.05)
+                              : paper.sheet,
+                          boxShadow: isSelected ? foldShadow.lift : "none",
+                          transform: isSelected ? "translateY(-2px)" : "none",
+                          transition: `transform ${duration.hover}ms ${easing}, background-color ${duration.hover}ms ${easing}, box-shadow ${duration.hover}ms ${easing}, border-color ${duration.hover}ms ${easing}`,
+                          "&:hover": { transform: "translateY(-2px)", boxShadow: foldShadow.rest },
+                          "&:active": { transform: "translateY(1px)" },
                         }}
                       >
-                        <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                        <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", minWidth: 0 }}>
                           <Box
+                            aria-hidden
                             sx={{
-                              width: 16,
-                              height: 16,
-                              borderRadius: "50%",
+                              width: 14,
+                              height: 14,
                               bgcolor: cat.color,
+                              transform: "rotate(45deg)",
+                              flexShrink: 0,
                             }}
                           />
                           <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -539,13 +571,13 @@ export default function QuizPage() {
                         <Box
                           sx={{
                             px: 1.25,
-                            py: 0.5,
-                            borderRadius: 1,
-                            fontFamily: "monospace",
+                            py: 0.4,
+                            ...monoSx,
                             fontWeight: 700,
                             fontSize: "0.875rem",
-                            color: "common.white",
+                            color: paper.white,
                             bgcolor: cat.color,
+                            clipPath: chevronCut(6),
                           }}
                         >
                           {counts[cat.key] || 0}
@@ -554,53 +586,61 @@ export default function QuizPage() {
                     );
                   })}
                 </Stack>
-                <Box
+
+                <Stack
+                  direction="row"
                   sx={{
                     mt: 2.5,
                     px: 2,
                     py: 1.25,
-                    borderRadius: 1.5,
-                    bgcolor: "background.default",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    bgcolor: paper.white,
+                    borderLeft: `3px solid ${paper.ink}`,
                   }}
                 >
-                  <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary">
-                      รวมที่จำแนกแล้ว
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 700 }}>
-                      {assignedCount} / {totalCells}
-                    </Typography>
-                  </Stack>
-                </Box>
-              </Card>
+                  <Typography variant="body2" color="text.secondary">
+                    รวมที่จำแนกแล้ว
+                  </Typography>
+                  <Typography variant="body2" sx={{ ...monoSx, fontWeight: 700 }}>
+                    {assignedCount} / {totalCells}
+                  </Typography>
+                </Stack>
+              </PaperCard>
 
-              <Card variant="outlined" sx={{ p: 2.5 }}>
+              <PaperCard cut={20} sx={{ p: 2.5 }}>
                 {confirmEarly && remaining > 0 && (
                   <Alert severity="warning" sx={{ mb: 2 }}>
-                    ยังเหลืออีก {remaining} เซลล์ที่ไม่ได้จำแนก จะถูกนับเป็นไม่ถูก — กด "ส่งคำตอบ" อีกครั้งเพื่อยืนยัน
+                    ยังเหลืออีก {remaining} เซลล์ที่ไม่ได้จำแนก จะถูกนับเป็นไม่ถูก — กด &ldquo;ส่งคำตอบ&rdquo;
+                    อีกครั้งเพื่อยืนยัน
                   </Alert>
                 )}
                 <Button
                   fullWidth
                   size="large"
                   variant="contained"
-                  color="success"
+                  color="primary"
                   endIcon={<SendOutlinedIcon />}
                   onClick={() => submit()}
                   disabled={submitting}
-                  sx={{ py: 1.5, fontSize: "1rem" }}
+                  sx={{ py: 1.6, fontSize: "1rem" }}
                 >
                   {submitting ? "กำลังส่ง..." : "ส่งคำตอบ"}
                 </Button>
+                {submitting && <Box className="paper-skeleton" sx={{ height: 3, mt: 1 }} />}
                 {err && (
                   <Alert severity="error" sx={{ mt: 2 }}>
                     {err}
                   </Alert>
                 )}
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: "block" }}>
-                  ผ่านเกณฑ์ที่ {quiz.passPercent}% — ถ้าผ่านจะได้รับใบประกาศนียบัตรหลังส่งคำตอบ
+                  ผ่านเกณฑ์ที่{" "}
+                  <Box component="span" sx={{ ...monoSx, fontWeight: 700 }}>
+                    {quiz.passPercent}%
+                  </Box>{" "}
+                  — ถ้าผ่านจะได้รับใบประกาศนียบัตรหลังส่งคำตอบ
                 </Typography>
-              </Card>
+              </PaperCard>
             </Stack>
           </Grid>
         </Grid>

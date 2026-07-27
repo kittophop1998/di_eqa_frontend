@@ -6,31 +6,39 @@ import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { api } from "@/lib/api";
 import { auth, type UserRole } from "@/lib/auth";
+import {
+  EmptyState,
+  Eyebrow,
+  Field,
+  FieldShell,
+  PaperCard,
+  PaperSkeleton,
+  SectionHeading,
+  StatusMark,
+} from "@/components/ui";
+import {
+  accent,
+  paper,
+  fadeUp,
+  hexToRgba,
+  chevronCut,
+  monoSx,
+  easing,
+  duration,
+} from "@/lib/design";
 
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Chip from "@mui/material/Chip";
-import Divider from "@mui/material/Divider";
 import Grid from "@mui/material/Grid";
-import Avatar from "@mui/material/Avatar";
 import Alert from "@mui/material/Alert";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
-import List from "@mui/material/List";
-import ListItemButton from "@mui/material/ListItemButton";
-import ListItemAvatar from "@mui/material/ListItemAvatar";
-import ListItemText from "@mui/material/ListItemText";
-import Radio from "@mui/material/Radio";
-import CircularProgress from "@mui/material/CircularProgress";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Table from "@mui/material/Table";
@@ -42,7 +50,6 @@ import TableRow from "@mui/material/TableRow";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import Pagination from "@mui/material/Pagination";
-import Paper from "@mui/material/Paper";
 import Tooltip from "@mui/material/Tooltip";
 import IconButton from "@mui/material/IconButton";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -53,13 +60,14 @@ import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutlineOutlined";
 import LiveTvOutlinedIcon from "@mui/icons-material/LiveTvOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
-import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import QuizOutlinedIcon from "@mui/icons-material/QuizOutlined";
 import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import PersonAddOutlinedIcon from "@mui/icons-material/PersonAddOutlined";
 import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import PersonSearchOutlinedIcon from "@mui/icons-material/PersonSearchOutlined";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -145,17 +153,17 @@ function auditActionLabel(action: string): string {
 
 function auditActionIcon(action: string) {
   switch (action) {
-    case "user.register":    return <PersonAddOutlinedIcon fontSize="small" />;
-    case "user.role_change": return <SwapHorizOutlinedIcon fontSize="small" />;
-    default:                 return <HistoryOutlinedIcon fontSize="small" />;
+    case "user.register":    return <PersonAddOutlinedIcon sx={{ fontSize: 14 }} />;
+    case "user.role_change": return <SwapHorizOutlinedIcon sx={{ fontSize: 14 }} />;
+    default:                 return <HistoryOutlinedIcon sx={{ fontSize: 14 }} />;
   }
 }
 
-function auditActionColor(action: string): "default" | "primary" | "warning" | "info" {
+function auditActionTone(action: string): string {
   switch (action) {
-    case "user.register":    return "info";
-    case "user.role_change": return "warning";
-    default:                 return "default";
+    case "user.register":    return accent.skyDeep;
+    case "user.role_change": return accent.warmDeep;
+    default:                 return paper.steel;
   }
 }
 
@@ -180,11 +188,11 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: "super_admin", label: "Super Admin" },
 ];
 
-function roleChipColor(role: UserRole): "default" | "primary" | "error" | "warning" {
+function roleTone(role: UserRole): string {
   switch (role) {
-    case "super_admin": return "error";
-    case "admin":       return "primary";
-    default:            return "default";
+    case "super_admin": return "#C2453D";
+    case "admin":       return accent.coralInk;
+    default:            return paper.steel;
   }
 }
 
@@ -195,6 +203,44 @@ function roleLabel(role: UserRole): string {
     case "instructor":  return "วิทยากร";
     default:            return "ผู้เข้าอบรม";
   }
+}
+
+// ─── Tag: the one badge shape used across the panel ──────────────────────────
+
+function Tag({
+  children,
+  icon,
+  tone = paper.steel,
+  solid = false,
+}: {
+  children: React.ReactNode;
+  icon?: React.ReactNode;
+  tone?: string;
+  solid?: boolean;
+}) {
+  return (
+    <Stack
+      component="span"
+      direction="row"
+      spacing={0.6}
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        px: 1.15,
+        py: 0.35,
+        clipPath: chevronCut(6),
+        fontSize: "0.75rem",
+        fontWeight: 600,
+        lineHeight: 1.5,
+        whiteSpace: "nowrap",
+        bgcolor: solid ? tone : hexToRgba(tone, 0.14),
+        color: solid ? paper.white : tone,
+      }}
+    >
+      {icon}
+      <Box component="span">{children}</Box>
+    </Stack>
+  );
 }
 
 // ─── Hospital picker dialog ───────────────────────────────────────────────────
@@ -235,16 +281,21 @@ function HospitalPickerDialog({
 
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ pb: 1 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>เลือกโรงพยาบาล</Typography>
+      <DialogTitle sx={{ pb: 1.5 }}>
+        <Eyebrow>สร้างเซสชัน</Eyebrow>
+        <Typography variant="h5" sx={{ mt: 1.25, fontWeight: 700 }}>
+          เลือกโรงพยาบาล
+        </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          สร้างเซสชัน <Box component="strong" sx={{ color: "text.primary" }}>{quizTitle}</Box> สำหรับโรงพยาบาลใด?
+          สร้างเซสชัน <Box component="strong" sx={{ color: "text.primary" }}>{quizTitle}</Box>{" "}
+          สำหรับโรงพยาบาลใด?
         </Typography>
       </DialogTitle>
+
       <DialogContent sx={{ pt: 1 }}>
-        <TextField
+        <Field
           inputRef={inputRef}
-          fullWidth
+          label="ค้นหาโรงพยาบาล"
           size="small"
           placeholder="ค้นหาชื่อ / รหัส รพ. / จังหวัด..."
           value={search}
@@ -259,52 +310,81 @@ function HospitalPickerDialog({
             },
           }}
         />
-        <Box
-          sx={{
-            mt: 2,
-            maxHeight: 320,
-            overflowY: "auto",
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: 1.5,
-          }}
-        >
+
+        <Box sx={{ mt: 2, maxHeight: 320, overflowY: "auto", border: `1px solid ${paper.crease}` }}>
           {filtered.length === 0 ? (
-            <Box sx={{ p: 3, textAlign: "center", color: "text.disabled" }}>
+            <Box sx={{ p: 4, textAlign: "center", color: "text.disabled" }}>
               <Typography variant="body2">ไม่พบโรงพยาบาล</Typography>
             </Box>
           ) : (
-            <List dense disablePadding>
-              {filtered.map((h) => {
-                const isSelected = selected?.id === h.id;
-                return (
-                  <ListItemButton key={h.id} selected={isSelected} onClick={() => setSelected(h)}>
-                    <ListItemAvatar sx={{ minWidth: 40 }}>
-                      <Radio checked={isSelected} size="small" />
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={<Typography variant="body2" sx={{ fontWeight: 600 }}>{h.name}</Typography>}
-                      secondary={
-                        <Typography variant="caption" color="text.disabled">
-                          {h.code}{h.province ? ` · ${h.province}` : ""}
-                        </Typography>
-                      }
-                    />
-                  </ListItemButton>
-                );
-              })}
-            </List>
+            filtered.map((h, i) => {
+              const isSelected = selected?.id === h.id;
+              return (
+                <Box
+                  key={h.id}
+                  component="button"
+                  type="button"
+                  onClick={() => setSelected(h)}
+                  aria-pressed={isSelected}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1.5,
+                    width: "100%",
+                    px: 2,
+                    py: 1.25,
+                    cursor: "pointer",
+                    textAlign: "left",
+                    border: "none",
+                    borderTop: i === 0 ? "none" : `1px solid ${paper.crease}`,
+                    borderLeft: `3px solid ${isSelected ? accent.coral : "transparent"}`,
+                    bgcolor: isSelected ? hexToRgba(accent.coral, 0.08) : "transparent",
+                    transition: `background-color ${duration.hover}ms ${easing}`,
+                    "&:hover": { bgcolor: hexToRgba(accent.coral, 0.05) },
+                  }}
+                >
+                  {/* Square selection marker — no radio circles. */}
+                  <Box
+                    aria-hidden
+                    sx={{
+                      width: 18,
+                      height: 18,
+                      flexShrink: 0,
+                      display: "grid",
+                      placeItems: "center",
+                      border: `1.5px solid ${isSelected ? accent.coral : paper.fold}`,
+                      bgcolor: isSelected ? accent.coral : "transparent",
+                      color: paper.ink,
+                    }}
+                  >
+                    {isSelected && <CheckRoundedIcon sx={{ fontSize: 14 }} />}
+                  </Box>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                      {h.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.disabled" sx={monoSx}>
+                      {h.code}
+                      {h.province ? ` · ${h.province}` : ""}
+                    </Typography>
+                  </Box>
+                </Box>
+              );
+            })
           )}
         </Box>
       </DialogContent>
+
       <DialogActions sx={{ px: 3, pb: 2.5 }}>
-        <Button onClick={onCancel} disabled={loading} variant="outlined" color="secondary">ยกเลิก</Button>
+        <Button onClick={onCancel} disabled={loading} variant="outlined">
+          ยกเลิก
+        </Button>
         <Button
           onClick={() => selected && onConfirm(selected)}
           disabled={!selected || loading}
           variant="contained"
           color="primary"
-          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <AddCircleOutlineIcon />}
+          startIcon={<AddCircleOutlineIcon />}
         >
           {loading ? "กำลังสร้าง..." : "สร้างเซสชัน"}
         </Button>
@@ -327,6 +407,7 @@ export default function AdminPage() {
   const [pendingQuiz, setPendingQuiz] = useState<QuizListItem | null>(null);
   const [creating, setCreating] = useState(false);
   const [sessionErr, setSessionErr] = useState("");
+  const [sessionLoading, setSessionLoading] = useState(true);
 
   // User management state
   const [users, setUsers] = useState<UserItem[]>([]);
@@ -375,6 +456,8 @@ export default function AdminPage() {
       setHospitals(h || []);
     } catch (e: any) {
       setSessionErr(e?.message || "โหลดข้อมูลไม่สำเร็จ");
+    } finally {
+      setSessionLoading(false);
     }
   };
 
@@ -491,7 +574,7 @@ export default function AdminPage() {
   const hospName = (id: string) => hospitals.find((h) => h.id === id)?.name ?? id;
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+    <Box sx={{ minHeight: "100dvh", bgcolor: "background.default" }}>
       <Header />
 
       <HospitalPickerDialog
@@ -503,69 +586,35 @@ export default function AdminPage() {
         onCancel={() => setPendingQuiz(null)}
       />
 
-      <Container maxWidth="lg" sx={{ py: { xs: 3, md: 6 }, px: { xs: 2, sm: 3 } }}>
-        {/* Page heading */}
-        <Box sx={{ mb: { xs: 2.5, md: 4 } }}>
-          <Typography variant="overline" color="primary.main" sx={{ fontWeight: 700 }}>
-            แผงควบคุม
-          </Typography>
-          <Typography
-            variant="h3"
-            sx={{
-              fontWeight: 700,
-              mt: 0.5,
-              fontSize: { xs: "1.75rem", sm: "2.25rem", md: "3rem" },
-              lineHeight: 1.2,
-            }}
-          >
+      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 }, px: { xs: 2, sm: 3 } }}>
+        {/* ─── Page heading ─── */}
+        <Stack spacing={1.5} sx={{ mb: { xs: 3, md: 5 }, ...fadeUp() }}>
+          <Eyebrow>แผงควบคุม</Eyebrow>
+          <Typography variant="h2" sx={{ fontSize: { xs: "1.875rem", sm: "2.25rem", md: "2.75rem" } }}>
             Admin Panel
           </Typography>
-          <Typography
-            variant="body1"
-            color="text.secondary"
-            sx={{ mt: 0.5, fontSize: { xs: "0.9rem", sm: "1rem" } }}
-          >
+          <Typography variant="body1" color="text.secondary">
             {isSuperAdmin
               ? "จัดการเซสชัน ข้อสอบ และสิทธิ์ผู้ใช้งานระบบ"
               : "สร้างเซสชันสด เปิดข้อสอบให้ผู้เข้าอบรมพร้อมกัน"}
           </Typography>
-        </Box>
+        </Stack>
 
-        {/* Tabs */}
+        {/* ─── Tabs ─── */}
         <Tabs
           value={tabIndex}
           onChange={(_, v) => setTabIndex(v)}
           variant="scrollable"
           scrollButtons="auto"
           allowScrollButtonsMobile
-          sx={{
-            mb: { xs: 2.5, md: 4 },
-            borderBottom: "1px solid",
-            borderColor: "divider",
-            "& .MuiTabs-indicator": { height: 3, borderRadius: 2 },
-          }}
+          sx={{ mb: { xs: 3, md: 4 }, borderBottom: `1px solid ${paper.crease}` }}
         >
-          <Tab
-            label="จัดการเซสชัน"
-            icon={<QuizOutlinedIcon fontSize="small" />}
-            iconPosition="start"
-            sx={{ minHeight: 48, textTransform: "none", fontWeight: 600 }}
-          />
+          <Tab label="จัดการเซสชัน" icon={<QuizOutlinedIcon fontSize="small" />} iconPosition="start" />
           {isSuperAdmin && (
-            <Tab
-              label="จัดการผู้ใช้"
-              icon={<PeopleOutlinedIcon fontSize="small" />}
-              iconPosition="start"
-              sx={{ minHeight: 48, textTransform: "none", fontWeight: 600 }}
-            />
+            <Tab label="จัดการผู้ใช้" icon={<PeopleOutlinedIcon fontSize="small" />} iconPosition="start" />
           )}
           {isSuperAdmin && (
-            <Tab
-              label="Audit Log"
-              icon={<HistoryOutlinedIcon fontSize="small" />}
-              iconPosition="start"
-              sx={{ minHeight: 48, textTransform: "none", fontWeight: 600 }}
-            />
+            <Tab label="Audit Log" icon={<HistoryOutlinedIcon fontSize="small" />} iconPosition="start" />
           )}
         </Tabs>
 
@@ -574,100 +623,127 @@ export default function AdminPage() {
           <>
             {sessionErr && <Alert severity="error" sx={{ mb: 3 }}>{sessionErr}</Alert>}
 
-            <Box sx={{ mb: 5 }}>
+            <Box sx={{ mb: 6 }}>
               <SectionHeading icon={<QuizOutlinedIcon />} title="เลือกข้อสอบเพื่อสร้างเซสชัน" />
-              <Grid container spacing={2}>
-                {quizzes.map((q) => (
-                  <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={q.id}>
-                    <Card variant="outlined">
-                      <CardContent>
-                        <Chip
-                          size="small"
-                          label={q.category}
-                          color="primary"
-                          variant="outlined"
-                          sx={{ fontWeight: 600 }}
-                        />
-                        <Typography variant="h6" sx={{ fontWeight: 700, mt: 1.5 }}>
+              {sessionLoading ? (
+                <Grid container spacing={2}>
+                  {[0, 1, 2].map((i) => (
+                    <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={i}>
+                      <PaperSkeleton height={190} />
+                    </Grid>
+                  ))}
+                </Grid>
+              ) : quizzes.length === 0 ? (
+                <EmptyState
+                  icon={<QuizOutlinedIcon />}
+                  title="ยังไม่มีชุดข้อสอบ"
+                  description="เพิ่มชุดข้อสอบเข้าระบบก่อน จึงจะสร้างเซสชันสดได้"
+                />
+              ) : (
+                <Grid container spacing={2}>
+                  {quizzes.map((q, i) => (
+                    <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={q.id}>
+                      <PaperCard
+                        cut={20}
+                        sx={{ p: 2.5, height: "100%", display: "flex", flexDirection: "column", ...fadeUp(i) }}
+                      >
+                        <Box>
+                          <Tag tone={accent.coralInk}>{q.category}</Tag>
+                        </Box>
+                        <Typography variant="h6" sx={{ fontWeight: 700, mt: 1.75, lineHeight: 1.35 }}>
                           {q.title}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
-                          {q.cellCount} เซลล์ · {Math.floor(q.durationSec / 60)} นาที · ผ่าน {q.passPercent || 80}%
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ mt: 0.75, display: "block", ...monoSx }}
+                        >
+                          {q.cellCount} เซลล์ · {Math.floor(q.durationSec / 60)} นาที · ผ่าน{" "}
+                          {q.passPercent || 80}%
                         </Typography>
+                        <Box sx={{ flexGrow: 1 }} />
                         <Button
                           fullWidth
                           variant="contained"
                           color="primary"
                           startIcon={<LocalHospitalOutlinedIcon />}
                           onClick={() => { setSessionErr(""); setPendingQuiz(q); }}
-                          sx={{ mt: 2 }}
+                          sx={{ mt: 2.5 }}
                         >
                           เลือก รพ. และสร้างเซสชัน
                         </Button>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
+                      </PaperCard>
+                    </Grid>
+                  ))}
+                </Grid>
+              )}
             </Box>
 
             <Box>
-              <SectionHeading icon={<LiveTvOutlinedIcon />} title="เซสชันที่กำลังเปิดอยู่" accent="success" />
-              {sessions.length === 0 ? (
-                <Card variant="outlined">
-                  <Box sx={{ p: 6, textAlign: "center", color: "text.secondary" }}>
-                    <Typography>ยังไม่มีเซสชันที่เปิดอยู่</Typography>
-                  </Box>
-                </Card>
+              <SectionHeading icon={<LiveTvOutlinedIcon />} title="เซสชันที่กำลังเปิดอยู่" tone="success" />
+              {sessionLoading ? (
+                <PaperSkeleton height={140} />
+              ) : sessions.length === 0 ? (
+                <EmptyState
+                  icon={<LiveTvOutlinedIcon />}
+                  title="ยังไม่มีเซสชันที่เปิดอยู่"
+                  description="เลือกชุดข้อสอบด้านบนเพื่อเปิดเซสชันสดให้ผู้เข้าอบรม"
+                />
               ) : (
-                <Card variant="outlined">
-                  <Stack divider={<Divider />}>
-                    {sessions.map((s) => (
-                      <Stack
-                        key={s.id}
-                        direction={{ xs: "column", sm: "row" }}
-                        spacing={2}
-                        sx={{
-                          p: 2.5,
-                          alignItems: { xs: "flex-start", sm: "center" },
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <Box>
-                          <Typography variant="caption" color="text.secondary">รหัสเซสชัน</Typography>
-                          <Typography
-                            variant="h6"
-                            sx={{ fontFamily: "monospace", fontWeight: 700, letterSpacing: "0.08em" }}
-                          >
-                            {s.code}
-                          </Typography>
-                        </Box>
-                        {s.hospitalId && (
-                          <Stack direction="row" spacing={1} sx={{ color: "text.secondary", alignItems: "center" }}>
-                            <LocalHospitalOutlinedIcon fontSize="small" />
-                            <Typography variant="body2">{hospName(s.hospitalId)}</Typography>
-                          </Stack>
-                        )}
-                        <Chip
-                          size="small"
-                          icon={<FiberManualRecordIcon sx={{ fontSize: 10 }} />}
-                          label={s.status === "running" ? "กำลังเปิด" : "รอเริ่ม"}
-                          color={s.status === "running" ? "success" : "warning"}
-                          sx={{ fontWeight: 600 }}
-                        />
-                        <Button
-                          component={NextLink}
-                          href={`/admin/session/${s.id}`}
-                          variant="outlined"
-                          size="small"
-                          endIcon={<ArrowForwardOutlinedIcon />}
+                <PaperCard>
+                  {sessions.map((s, i) => (
+                    <Stack
+                      key={s.id}
+                      direction={{ xs: "column", sm: "row" }}
+                      spacing={2}
+                      sx={{
+                        p: 2.5,
+                        alignItems: { xs: "flex-start", sm: "center" },
+                        justifyContent: "space-between",
+                        borderTop: i === 0 ? "none" : `1px solid ${paper.crease}`,
+                      }}
+                    >
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          รหัสเซสชัน
+                        </Typography>
+                        <Typography
+                          variant="h6"
+                          sx={{ ...monoSx, fontWeight: 700, letterSpacing: "0.1em", color: accent.coralInk }}
                         >
-                          จัดการ
-                        </Button>
+                          {s.code}
+                        </Typography>
+                      </Box>
+
+                      {s.hospitalId && (
+                        <Stack direction="row" spacing={1} sx={{ color: "text.secondary", alignItems: "center" }}>
+                          <LocalHospitalOutlinedIcon fontSize="small" />
+                          <Typography variant="body2">{hospName(s.hospitalId)}</Typography>
+                        </Stack>
+                      )}
+
+                      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                        <StatusMark
+                          color={s.status === "running" ? accent.sageDeep : accent.warmDeep}
+                          pulse={s.status === "running"}
+                        />
+                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                          {s.status === "running" ? "กำลังเปิด" : "รอเริ่ม"}
+                        </Typography>
                       </Stack>
-                    ))}
-                  </Stack>
-                </Card>
+
+                      <Button
+                        component={NextLink}
+                        href={`/admin/session/${s.id}`}
+                        variant="outlined"
+                        size="small"
+                        endIcon={<ArrowForwardOutlinedIcon />}
+                      >
+                        จัดการ
+                      </Button>
+                    </Stack>
+                  ))}
+                </PaperCard>
               )}
             </Box>
           </>
@@ -748,14 +824,10 @@ function UserManagementPanel({
 
       {/* Search bar */}
       <Box component="form" onSubmit={onSearch} sx={{ mb: 3 }}>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1.5}
-          sx={{ alignItems: { sm: "center" } }}
-        >
-          <TextField
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { sm: "flex-end" } }}>
+          <Field
             size="small"
-            fullWidth
+            label="ค้นหาผู้ใช้"
             placeholder="ค้นหาชื่อ / username / อีเมล..."
             value={searchInput}
             onChange={(e) => onSearchInputChange(e.target.value)}
@@ -768,19 +840,14 @@ function UserManagementPanel({
                 ),
               },
             }}
-            sx={{ flexGrow: 1, maxWidth: { sm: 400 } }}
+            sx={{ maxWidth: { sm: 400 } }}
           />
           <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-            <Button
-              type="submit"
-              variant="contained"
-              size="small"
-              sx={{ flexGrow: { xs: 1, sm: 0 } }}
-            >
+            <Button type="submit" variant="contained" color="primary" sx={{ flexGrow: { xs: 1, sm: 0 } }}>
               ค้นหา
             </Button>
             <Tooltip title="รีเฟรช">
-              <IconButton size="small" onClick={onRefresh}>
+              <IconButton onClick={onRefresh} sx={{ border: `1px solid ${paper.crease}` }}>
                 <RefreshOutlinedIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -794,103 +861,68 @@ function UserManagementPanel({
       {isMobile ? (
         <Stack spacing={1.5}>
           {loading ? (
-            <Box sx={{ py: 6, textAlign: "center" }}>
-              <CircularProgress size={28} />
-            </Box>
+            [0, 1, 2].map((i) => <PaperSkeleton key={i} height={200} />)
           ) : users.length === 0 ? (
-            <Paper
-              variant="outlined"
-              sx={{ p: 4, textAlign: "center", borderRadius: 2, color: "text.disabled" }}
-            >
-              <Typography variant="body2">ไม่พบรายชื่อผู้ใช้</Typography>
-            </Paper>
+            <EmptyState icon={<PersonSearchOutlinedIcon />} title="ไม่พบรายชื่อผู้ใช้" />
           ) : (
-            users.map((u) => (
-              <Paper
-                key={u.id}
-                variant="outlined"
-                sx={{ p: 2, borderRadius: 2, bgcolor: "background.paper" }}
-              >
-                <Stack spacing={1.25}>
-                  {/* Header: avatar + name + role chip */}
+            users.map((u, i) => (
+              <PaperCard key={u.id} edge={roleTone(u.role)} sx={{ p: 2, ...fadeUp(Math.min(i, 6)) }}>
+                <Stack spacing={1.5}>
                   <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
-                    <Avatar
+                    <Box
+                      aria-hidden
                       sx={{
                         width: 40,
                         height: 40,
-                        bgcolor: "rgba(30,58,138,0.08)",
-                        color: "primary.main",
+                        display: "grid",
+                        placeItems: "center",
+                        flexShrink: 0,
+                        clipPath: chevronCut(10),
+                        bgcolor: hexToRgba(accent.coral, 0.12),
+                        color: accent.coralInk,
                         fontWeight: 700,
                         fontSize: 16,
                       }}
                     >
                       {(u.fullName || u.username || "?").charAt(0).toUpperCase()}
-                    </Avatar>
+                    </Box>
                     <Box sx={{ minWidth: 0, flex: 1 }}>
                       <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
                         {u.fullName || "—"}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" color="text.secondary" sx={monoSx}>
                         @{u.username}
                       </Typography>
                     </Box>
-                    <Chip
-                      size="small"
-                      label={roleLabel(u.role)}
-                      color={roleChipColor(u.role)}
-                      sx={{ fontWeight: 600, fontSize: 11, flexShrink: 0 }}
-                    />
+                    <Tag tone={roleTone(u.role)}>{roleLabel(u.role)}</Tag>
                   </Stack>
 
-                  {/* Info rows */}
-                  <Stack spacing={0.5} sx={{ pl: 0.25 }}>
+                  <Stack spacing={0.5}>
                     <InfoRow label="อีเมล" value={u.email || "—"} mono />
                     <InfoRow label="โรงพยาบาล" value={u.hospitalName || "—"} />
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                      sx={{ alignItems: "center", flexWrap: "wrap" }}
-                    >
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ minWidth: 80 }}
-                      >
+                    <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 80 }}>
                         ประเภท
                       </Typography>
-                      <Chip
-                        size="small"
-                        label={
-                          u.memberType === "external"
-                            ? "ภายนอก"
-                            : u.memberType === "internal"
+                      <Tag>
+                        {u.memberType === "external"
+                          ? "ภายนอก"
+                          : u.memberType === "internal"
                             ? "ภายใน"
-                            : "—"
-                        }
-                        variant="outlined"
-                        sx={{ fontSize: 11, height: 22 }}
-                      />
+                            : "—"}
+                      </Tag>
                     </Stack>
                   </Stack>
 
-                  <Divider />
-
-                  {/* Role change */}
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{ alignItems: "center", justifyContent: "space-between" }}
-                  >
-                    <Typography variant="caption" color="text.secondary">
-                      เปลี่ยน Role
-                    </Typography>
-                    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                  <Box sx={{ borderTop: `1px solid ${paper.crease}`, pt: 1.5 }}>
+                    <FieldShell label="เปลี่ยน Role">
                       <Select
                         size="small"
+                        fullWidth
                         value={u.role}
                         disabled={updatingRole === u.id}
                         onChange={(e) => onRoleChange(u.id, e.target.value as UserRole)}
-                        sx={{ fontSize: 12, minWidth: 160 }}
+                        sx={{ fontSize: 13 }}
                       >
                         {ROLE_OPTIONS.map((opt) => (
                           <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: 13 }}>
@@ -898,41 +930,44 @@ function UserManagementPanel({
                           </MenuItem>
                         ))}
                       </Select>
-                      {updatingRole === u.id && <CircularProgress size={16} />}
-                    </Stack>
-                  </Stack>
+                    </FieldShell>
+                    {updatingRole === u.id && (
+                      <Box className="paper-skeleton" sx={{ height: 3, mt: 0.75 }} />
+                    )}
+                  </Box>
                 </Stack>
-              </Paper>
+              </PaperCard>
             ))
           )}
         </Stack>
       ) : (
-        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
-          <TableContainer>
+        <PaperCard sx={{ overflow: "hidden" }}>
+          <TableContainer sx={{ overflowX: "auto" }}>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ bgcolor: "grey.50" }}>
-                  <TableCell sx={{ fontWeight: 700 }}>ชื่อ-นามสกุล / Username</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>อีเมล</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>โรงพยาบาล</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>ประเภท</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>วันที่สมัคร</TableCell>
-                  <TableCell sx={{ fontWeight: 700, minWidth: 180 }}>Role</TableCell>
+                <TableRow>
+                  <TableCell>ชื่อ-นามสกุล / Username</TableCell>
+                  <TableCell>อีเมล</TableCell>
+                  <TableCell>โรงพยาบาล</TableCell>
+                  <TableCell>ประเภท</TableCell>
+                  <TableCell>วันที่สมัคร</TableCell>
+                  <TableCell sx={{ minWidth: 190 }}>Role</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} sx={{ textAlign: "center", py: 6 }}>
-                      <CircularProgress size={28} />
+                    <TableCell colSpan={6} sx={{ p: 2 }}>
+                      <Stack spacing={1}>
+                        {[0, 1, 2, 3].map((i) => (
+                          <Box key={i} className="paper-skeleton" sx={{ height: 32 }} />
+                        ))}
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 ) : users.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      sx={{ textAlign: "center", py: 6, color: "text.disabled" }}
-                    >
+                    <TableCell colSpan={6} sx={{ textAlign: "center", py: 6, color: "text.disabled" }}>
                       ไม่พบรายชื่อผู้ใช้
                     </TableCell>
                   </TableRow>
@@ -943,41 +978,35 @@ function UserManagementPanel({
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
                           {u.fullName}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={monoSx}>
                           @{u.username}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{u.email || "—"}</Typography>
+                        <Typography variant="body2" sx={monoSx}>
+                          {u.email || "—"}
+                        </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">{u.hospitalName || "—"}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          size="small"
-                          label={
-                            u.memberType === "external"
-                              ? "ภายนอก"
-                              : u.memberType === "internal"
+                        <Tag>
+                          {u.memberType === "external"
+                            ? "ภายนอก"
+                            : u.memberType === "internal"
                               ? "ภายใน"
-                              : "—"
-                          }
-                          variant="outlined"
-                          sx={{ fontSize: 11 }}
-                        />
+                              : "—"}
+                        </Tag>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="caption">{u.createdAt}</Typography>
+                        <Typography variant="caption" sx={monoSx}>
+                          {u.createdAt}
+                        </Typography>
                       </TableCell>
                       <TableCell>
                         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                          <Chip
-                            size="small"
-                            label={roleLabel(u.role)}
-                            color={roleChipColor(u.role)}
-                            sx={{ fontWeight: 600, fontSize: 11 }}
-                          />
+                          <Tag tone={roleTone(u.role)}>{roleLabel(u.role)}</Tag>
                           <Select
                             size="small"
                             value={u.role}
@@ -991,7 +1020,6 @@ function UserManagementPanel({
                               </MenuItem>
                             ))}
                           </Select>
-                          {updatingRole === u.id && <CircularProgress size={16} />}
                         </Stack>
                       </TableCell>
                     </TableRow>
@@ -1000,7 +1028,7 @@ function UserManagementPanel({
               </TableBody>
             </Table>
           </TableContainer>
-        </Paper>
+        </PaperCard>
       )}
 
       {/* Pagination */}
@@ -1010,7 +1038,6 @@ function UserManagementPanel({
             count={totalPages}
             page={page}
             onChange={onPageChange}
-            color="primary"
             shape="rounded"
             size={isMobile ? "small" : "medium"}
           />
@@ -1048,33 +1075,31 @@ function AuditLogPanel({
 
   return (
     <Box>
-      <SectionHeading icon={<HistoryOutlinedIcon />} title="บันทึกการเปลี่ยนแปลง (Audit Log)" />
-
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
-        บันทึกกิจกรรมสำคัญในระบบ เช่น การสมัครสมาชิกใหม่ และการเปลี่ยน role ของผู้ใช้
-      </Typography>
+      <SectionHeading
+        icon={<HistoryOutlinedIcon />}
+        title="บันทึกการเปลี่ยนแปลง (Audit Log)"
+        subtitle="บันทึกกิจกรรมสำคัญในระบบ เช่น การสมัครสมาชิกใหม่ และการเปลี่ยน role ของผู้ใช้"
+      />
 
       {/* Toolbar */}
-      <Stack
-        direction={{ xs: "row", sm: "row" }}
-        spacing={1}
-        sx={{ mb: 3, alignItems: "center" }}
-      >
-        <Select
-          size="small"
-          fullWidth
-          value={action}
-          onChange={(e) => onActionChange(String(e.target.value))}
-          sx={{ minWidth: { sm: 200 }, fontSize: 13, maxWidth: { sm: 280 } }}
-        >
-          {AUDIT_ACTION_OPTIONS.map((opt) => (
-            <MenuItem key={opt.value || "all"} value={opt.value} sx={{ fontSize: 13 }}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </Select>
+      <Stack direction="row" spacing={1} sx={{ mb: 3, alignItems: "flex-end" }}>
+        <FieldShell label="ประเภทกิจกรรม" sx={{ maxWidth: { sm: 280 } }}>
+          <Select
+            size="small"
+            fullWidth
+            value={action}
+            onChange={(e) => onActionChange(String(e.target.value))}
+            sx={{ fontSize: 13 }}
+          >
+            {AUDIT_ACTION_OPTIONS.map((opt) => (
+              <MenuItem key={opt.value || "all"} value={opt.value} sx={{ fontSize: 13 }}>
+                {opt.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FieldShell>
         <Tooltip title="รีเฟรช">
-          <IconButton size="small" onClick={onRefresh}>
+          <IconButton onClick={onRefresh} sx={{ border: `1px solid ${paper.crease}` }}>
             <RefreshOutlinedIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -1086,54 +1111,28 @@ function AuditLogPanel({
       {isMobile ? (
         <Stack spacing={1.5}>
           {loading ? (
-            <Box sx={{ py: 6, textAlign: "center" }}>
-              <CircularProgress size={28} />
-            </Box>
+            [0, 1, 2].map((i) => <PaperSkeleton key={i} height={190} />)
           ) : logs.length === 0 ? (
-            <Paper
-              variant="outlined"
-              sx={{ p: 4, textAlign: "center", borderRadius: 2, color: "text.disabled" }}
-            >
-              <Typography variant="body2">ยังไม่มีข้อมูล audit log</Typography>
-            </Paper>
+            <EmptyState icon={<HistoryOutlinedIcon />} title="ยังไม่มีข้อมูล audit log" />
           ) : (
-            logs.map((l) => (
-              <Paper
-                key={l.id}
-                variant="outlined"
-                sx={{ p: 2, borderRadius: 2, bgcolor: "background.paper" }}
-              >
-                <Stack spacing={1.25}>
-                  {/* Header: action chip + time */}
+            logs.map((l, i) => (
+              <PaperCard key={l.id} edge={auditActionTone(l.action)} sx={{ p: 2, ...fadeUp(Math.min(i, 6)) }}>
+                <Stack spacing={1.5}>
                   <Stack
                     direction="row"
                     spacing={1}
-                    sx={{
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      flexWrap: "wrap",
-                      gap: 1,
-                    }}
+                    sx={{ alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1 }}
                   >
-                    <Chip
-                      size="small"
-                      icon={auditActionIcon(l.action)}
-                      label={auditActionLabel(l.action)}
-                      color={auditActionColor(l.action)}
-                      sx={{ fontWeight: 600, fontSize: 11 }}
-                    />
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ fontFamily: "monospace" }}
-                    >
+                    <Tag tone={auditActionTone(l.action)} icon={auditActionIcon(l.action)}>
+                      {auditActionLabel(l.action)}
+                    </Tag>
+                    <Typography variant="caption" color="text.secondary" sx={monoSx}>
                       {formatAuditTime(l.createdAt)}
                     </Typography>
                   </Stack>
 
-                  <Divider />
+                  <Box sx={{ borderTop: `1px solid ${paper.crease}` }} />
 
-                  {/* Actor → Target */}
                   <Grid container spacing={1.5}>
                     <Grid size={{ xs: 6 }}>
                       <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
@@ -1156,14 +1155,13 @@ function AuditLogPanel({
                         {l.targetName || "—"}
                       </Typography>
                       {l.metadata?.username && (
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={monoSx}>
                           @{String(l.metadata.username)}
                         </Typography>
                       )}
                     </Grid>
                   </Grid>
 
-                  {/* Details */}
                   <Box>
                     <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
                       รายละเอียด
@@ -1171,49 +1169,49 @@ function AuditLogPanel({
                     <AuditLogDetails action={l.action} metadata={l.metadata} />
                   </Box>
 
-                  {/* IP */}
                   {l.ip && (
                     <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                       <Typography variant="caption" color="text.secondary" sx={{ minWidth: 40 }}>
                         IP
                       </Typography>
-                      <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
+                      <Typography variant="caption" sx={monoSx}>
                         {l.ip}
                       </Typography>
                     </Stack>
                   )}
                 </Stack>
-              </Paper>
+              </PaperCard>
             ))
           )}
         </Stack>
       ) : (
-        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
-          <TableContainer>
+        <PaperCard sx={{ overflow: "hidden" }}>
+          <TableContainer sx={{ overflowX: "auto" }}>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ bgcolor: "grey.50" }}>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>เวลา</TableCell>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>ประเภท</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>ผู้กระทำ</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>เป้าหมาย</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>รายละเอียด</TableCell>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>IP</TableCell>
+                <TableRow>
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>เวลา</TableCell>
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>ประเภท</TableCell>
+                  <TableCell>ผู้กระทำ</TableCell>
+                  <TableCell>เป้าหมาย</TableCell>
+                  <TableCell>รายละเอียด</TableCell>
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>IP</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} sx={{ textAlign: "center", py: 6 }}>
-                      <CircularProgress size={28} />
+                    <TableCell colSpan={6} sx={{ p: 2 }}>
+                      <Stack spacing={1}>
+                        {[0, 1, 2, 3, 4].map((i) => (
+                          <Box key={i} className="paper-skeleton" sx={{ height: 30 }} />
+                        ))}
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 ) : logs.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      sx={{ textAlign: "center", py: 6, color: "text.disabled" }}
-                    >
+                    <TableCell colSpan={6} sx={{ textAlign: "center", py: 6, color: "text.disabled" }}>
                       ยังไม่มีข้อมูล audit log
                     </TableCell>
                   </TableRow>
@@ -1221,18 +1219,14 @@ function AuditLogPanel({
                   logs.map((l) => (
                     <TableRow key={l.id} hover>
                       <TableCell sx={{ whiteSpace: "nowrap" }}>
-                        <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
+                        <Typography variant="caption" sx={monoSx}>
                           {formatAuditTime(l.createdAt)}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          size="small"
-                          icon={auditActionIcon(l.action)}
-                          label={auditActionLabel(l.action)}
-                          color={auditActionColor(l.action)}
-                          sx={{ fontWeight: 600, fontSize: 11 }}
-                        />
+                        <Tag tone={auditActionTone(l.action)} icon={auditActionIcon(l.action)}>
+                          {auditActionLabel(l.action)}
+                        </Tag>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -1247,7 +1241,7 @@ function AuditLogPanel({
                       <TableCell>
                         <Typography variant="body2">{l.targetName || "—"}</Typography>
                         {l.metadata?.username && (
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" color="text.secondary" sx={monoSx}>
                             @{String(l.metadata.username)}
                           </Typography>
                         )}
@@ -1256,7 +1250,7 @@ function AuditLogPanel({
                         <AuditLogDetails action={l.action} metadata={l.metadata} />
                       </TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap" }}>
-                        <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
+                        <Typography variant="caption" sx={monoSx}>
                           {l.ip || "—"}
                         </Typography>
                       </TableCell>
@@ -1266,7 +1260,7 @@ function AuditLogPanel({
               </TableBody>
             </Table>
           </TableContainer>
-        </Paper>
+        </PaperCard>
       )}
 
       {/* Pagination */}
@@ -1276,7 +1270,6 @@ function AuditLogPanel({
             count={totalPages}
             page={page}
             onChange={onPageChange}
-            color="primary"
             shape="rounded"
             size={isMobile ? "small" : "medium"}
           />
@@ -1304,7 +1297,7 @@ function InfoRow({
       <Typography
         variant="body2"
         sx={{
-          fontFamily: mono ? "monospace" : undefined,
+          ...(mono ? monoSx : null),
           wordBreak: "break-word",
           flex: 1,
           minWidth: 0,
@@ -1333,18 +1326,13 @@ function AuditLogDetails({
     const oldRole = metadata.oldRole as UserRole | undefined;
     const newRole = metadata.newRole as UserRole | undefined;
     return (
-      <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-        {oldRole && (
-          <Chip size="small" label={roleLabel(oldRole)} variant="outlined" sx={{ fontSize: 11 }} />
-        )}
-        <Typography variant="caption" color="text.secondary">→</Typography>
+      <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", flexWrap: "wrap", gap: 0.5 }}>
+        {oldRole && <Tag>{roleLabel(oldRole)}</Tag>}
+        <Box aria-hidden sx={{ width: 14, height: 2, bgcolor: accent.coral }} />
         {newRole && (
-          <Chip
-            size="small"
-            label={roleLabel(newRole)}
-            color={roleChipColor(newRole)}
-            sx={{ fontWeight: 600, fontSize: 11 }}
-          />
+          <Tag tone={roleTone(newRole)} solid>
+            {roleLabel(newRole)}
+          </Tag>
         )}
       </Stack>
     );
@@ -1354,13 +1342,8 @@ function AuditLogDetails({
     const memberType = metadata.memberType as string | undefined;
     const hospitalName = metadata.hospitalName as string | undefined;
     return (
-      <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-        <Chip
-          size="small"
-          label={memberType === "external" ? "ภายนอก" : "ภายใน"}
-          variant="outlined"
-          sx={{ fontSize: 11 }}
-        />
+      <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", flexWrap: "wrap", gap: 0.5 }}>
+        <Tag>{memberType === "external" ? "ภายนอก" : "ภายใน"}</Tag>
         {hospitalName && (
           <Typography variant="caption" color="text.secondary">
             {hospitalName}
@@ -1371,39 +1354,8 @@ function AuditLogDetails({
   }
 
   return (
-    <Typography variant="caption" color="text.secondary" sx={{ fontFamily: "monospace" }}>
+    <Typography variant="caption" color="text.secondary" sx={monoSx}>
       {JSON.stringify(metadata)}
     </Typography>
-  );
-}
-
-// ─── Section Heading ──────────────────────────────────────────────────────────
-
-function SectionHeading({
-  icon,
-  title,
-  accent,
-}: {
-  icon?: React.ReactNode;
-  title: string;
-  accent?: "success" | "primary";
-}) {
-  return (
-    <Stack direction="row" spacing={1.25} sx={{ mb: 2, alignItems: "center" }}>
-      {icon && (
-        <Avatar
-          variant="rounded"
-          sx={{
-            width: 32,
-            height: 32,
-            bgcolor: accent === "success" ? "rgba(34,197,94,0.12)" : "rgba(30,58,138,0.08)",
-            color: accent === "success" ? "success.dark" : "primary.main",
-          }}
-        >
-          {icon}
-        </Avatar>
-      )}
-      <Typography variant="h5" sx={{ fontWeight: 700 }}>{title}</Typography>
-    </Stack>
   );
 }

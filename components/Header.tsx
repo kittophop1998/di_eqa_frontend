@@ -4,16 +4,16 @@ import NextLink from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, type User } from "@/lib/auth";
+import { Wordmark } from "@/components/ui";
+import { accent, paper, chevronCut, hexToRgba, foldShadow } from "@/lib/design";
 
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import Avatar from "@mui/material/Avatar";
 import Stack from "@mui/material/Stack";
 import Divider from "@mui/material/Divider";
-import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -52,105 +52,73 @@ export default function Header() {
     user?.role === "instructor";
 
   return (
-    <AppBar position="sticky" color="inherit" elevation={0}>
+    <AppBar position="sticky" color="inherit" elevation={0} sx={{ zIndex: 100 }}>
       <Toolbar
         sx={{
-          maxWidth: "75rem",
+          maxWidth: "80rem",
           width: "100%",
           mx: "auto",
           px: { xs: 2, sm: 3 },
-          minHeight: { xs: 60, sm: 68 },
+          minHeight: { xs: 64, sm: 72 },
+          gap: 1,
         }}
       >
         <Box
           component={NextLink}
           href={user ? "/dashboard" : "/"}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1.5,
-            color: "inherit",
-            flexGrow: 1,
-            minWidth: 0,
-          }}
+          sx={{ display: "flex", alignItems: "center", flexGrow: 1, minWidth: 0 }}
         >
-          <Avatar
-            variant="rounded"
-            sx={{
-              bgcolor: "primary.main",
-              width: 38,
-              height: 38,
-              fontSize: 14,
-              fontWeight: 800,
-              letterSpacing: "0.04em",
-            }}
-          >
-            DI
-          </Avatar>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-              DI EQA
-            </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ lineHeight: 1.2, display: { xs: "none", sm: "block" } }}
-            >
-              ระบบประเมินคุณภาพห้องปฏิบัติการ
-            </Typography>
-          </Box>
+          <Wordmark size={38} />
         </Box>
 
         {user && (
           <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
             <Box sx={{ textAlign: "right", display: { xs: "none", md: "block" }, mr: 0.5 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
                 {user.fullName}
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 {user.hospital?.name || ""}
               </Typography>
             </Box>
-            <Chip
-              label={roleLabel}
-              size="small"
-              variant="outlined"
+
+            {/* Role marker — a chevron-cut tag, not a pill. */}
+            <Box
               sx={{
-                display: { xs: "none", sm: "inline-flex" },
+                display: { xs: "none", sm: "block" },
+                px: 1.5,
+                py: 0.5,
+                fontSize: "0.75rem",
                 fontWeight: 600,
-                color: isStaff ? "primary.main" : "text.secondary",
-                borderColor: isStaff ? "primary.light" : "divider",
-                bgcolor: isStaff ? "rgba(30,58,138,0.06)" : "transparent",
+                letterSpacing: "0.04em",
+                clipPath: chevronCut(8),
+                color: isStaff ? accent.coralInk : paper.steel,
+                bgcolor: isStaff ? hexToRgba(accent.coral, 0.14) : hexToRgba(paper.fold, 0.22),
               }}
-            />
+            >
+              {roleLabel}
+            </Box>
 
-            <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 1 }} />
+            <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 1.5 }} />
 
-            {isStaff ? (
-              <Button
-                component={NextLink}
-                href="/admin"
-                variant="outlined"
-                size="small"
-                startIcon={<AdminPanelSettingsOutlinedIcon fontSize="small" />}
-                sx={{ display: { xs: "none", sm: "inline-flex" } }}
-              >
-                แผงควบคุม
-              </Button>
-            ) : (
-              <Button
-                component={NextLink}
-                href="/dashboard"
-                variant="outlined"
-                size="small"
-                startIcon={<DashboardOutlinedIcon fontSize="small" />}
-                sx={{ display: { xs: "none", sm: "inline-flex" } }}
-              >
-                แดชบอร์ด
-              </Button>
-            )}
+            <Button
+              component={NextLink}
+              href={isStaff ? "/admin" : "/dashboard"}
+              variant="outlined"
+              size="small"
+              startIcon={
+                isStaff ? (
+                  <AdminPanelSettingsOutlinedIcon fontSize="small" />
+                ) : (
+                  <DashboardOutlinedIcon fontSize="small" />
+                )
+              }
+              sx={{ display: { xs: "none", sm: "inline-flex" } }}
+            >
+              {isStaff ? "แผงควบคุม" : "แดชบอร์ด"}
+            </Button>
 
-            <IconButton size="small" onClick={(e) => setAnchor(e.currentTarget)} aria-label="user menu">
+            <IconButton size="small" onClick={(e) => setAnchor(e.currentTarget)} aria-label="เมนูผู้ใช้">
               <AccountCircleOutlinedIcon />
             </IconButton>
             <Menu
@@ -162,16 +130,15 @@ export default function Header() {
               slotProps={{
                 paper: {
                   sx: {
-                    minWidth: 200,
+                    minWidth: 224,
                     mt: 1,
-                    borderRadius: 2,
-                    border: "1px solid",
-                    borderColor: "divider",
+                    border: `1px solid ${paper.crease}`,
+                    boxShadow: foldShadow.overlay,
                   },
                 },
               }}
             >
-              <Box sx={{ px: 2, py: 1.25 }}>
+              <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${paper.crease}` }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                   {user.fullName}
                 </Typography>
@@ -179,8 +146,7 @@ export default function Header() {
                   @{user.username} · {roleLabel}
                 </Typography>
               </Box>
-              <Divider />
-              <MenuItem onClick={onLogout}>
+              <MenuItem onClick={onLogout} sx={{ py: 1.25 }}>
                 <ListItemIcon>
                   <LogoutOutlinedIcon fontSize="small" color="error" />
                 </ListItemIcon>

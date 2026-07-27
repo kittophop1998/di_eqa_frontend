@@ -11,10 +11,22 @@ import {
   THAI_PROVINCES,
   buildCertificateYearOptions,
 } from "@/lib/registerOptions";
+import { Eyebrow, Field, FieldShell, PaperCard, Wordmark } from "@/components/ui";
+import {
+  accent,
+  paper,
+  fadeUp,
+  hexToRgba,
+  chevronCut,
+  cornerCut,
+  foldShadow,
+  easing,
+  duration,
+  tessellation,
+} from "@/lib/design";
 
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import Paper from "@mui/material/Paper";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
@@ -23,20 +35,11 @@ import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Alert from "@mui/material/Alert";
-import Divider from "@mui/material/Divider";
 import Link from "@mui/material/Link";
-import Avatar from "@mui/material/Avatar";
-import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
 import Snackbar from "@mui/material/Snackbar";
 import Autocomplete from "@mui/material/Autocomplete";
-import Stepper from "@mui/material/Stepper";
-import Step from "@mui/material/Step";
-import StepLabel from "@mui/material/StepLabel";
 import LinearProgress from "@mui/material/LinearProgress";
-import Chip from "@mui/material/Chip";
-import Card from "@mui/material/Card";
-import CardActionArea from "@mui/material/CardActionArea";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 
@@ -54,8 +57,8 @@ import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
 import HowToRegOutlinedIcon from "@mui/icons-material/HowToRegOutlined";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 
 type FormState = {
   username: string;
@@ -290,55 +293,31 @@ export default function RegisterPage() {
     <Box
       component="main"
       sx={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
         bgcolor: "background.default",
-        background:
-          "radial-gradient(1200px 600px at -10% -10%, rgba(125,211,252,0.15) 0%, transparent 60%)," +
-          "radial-gradient(1200px 600px at 110% 110%, rgba(30,58,138,0.10) 0%, transparent 60%)," +
-          "linear-gradient(180deg, #F8FAFC 0%, #EEF2F7 100%)",
-        pb: { xs: 12, md: 10 },
+        ...tessellation(paper.ink, 0.014, 96),
+        pb: { xs: 14, md: 12 },
       }}
     >
-      {/* ─────────── Top Bar ─────────── */}
+      {/* ─────────── Top bar ─────────── */}
       <Box
         sx={{
           position: "sticky",
           top: 0,
-          zIndex: 10,
-          bgcolor: "rgba(255,255,255,0.85)",
+          zIndex: 100,
+          bgcolor: hexToRgba(paper.sheet, 0.92),
           backdropFilter: "blur(8px)",
-          borderBottom: "1px solid",
-          borderColor: "divider",
+          borderBottom: `1px solid ${paper.crease}`,
         }}
       >
         <Container maxWidth="md" sx={{ py: 1.5 }}>
           <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
-            <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-              <Avatar
-                variant="rounded"
-                sx={{ width: 38, height: 38, bgcolor: "primary.main", fontWeight: 800 }}
-              >
-                DI
-              </Avatar>
-              <Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.15 }}>
-                  DI EQA
-                </Typography>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ display: { xs: "none", sm: "block" } }}
-                >
-                  ระบบประเมินคุณภาพห้องปฏิบัติการ
-                </Typography>
-              </Box>
-            </Stack>
+            <Wordmark size={36} />
             <Button
               component={NextLink}
               href="/login"
               variant="text"
               startIcon={<ArrowBackOutlinedIcon />}
-              sx={{ textTransform: "none", fontWeight: 600 }}
             >
               {isMobile ? "เข้าสู่ระบบ" : "กลับไปเข้าสู่ระบบ"}
             </Button>
@@ -346,86 +325,46 @@ export default function RegisterPage() {
         </Container>
       </Box>
 
-      {/* ─────────── Hero (compact) ─────────── */}
-      <Container maxWidth="md" sx={{ pt: { xs: 3, md: 5 }, pb: { xs: 1, md: 2 } }}>
-        <Stack spacing={0.5} sx={{ alignItems: "center", textAlign: "center" }}>
-          <Typography
-            variant="overline"
-            color="primary.main"
-            sx={{ fontWeight: 700, letterSpacing: "0.2em" }}
-          >
-            สมัครสมาชิก
-          </Typography>
-          <Typography
-            variant="h4"
-            sx={{ fontWeight: 800, fontSize: { xs: "1.5rem", md: "2rem" } }}
-          >
+      {/* ─────────── Hero ─────────── */}
+      <Container maxWidth="md" sx={{ pt: { xs: 4, md: 6 }, pb: { xs: 1, md: 2 } }}>
+        <Stack spacing={1.5} sx={{ alignItems: "center", textAlign: "center", ...fadeUp() }}>
+          <Eyebrow>สมัครสมาชิก</Eyebrow>
+          <Typography variant="h3" sx={{ fontSize: { xs: "1.625rem", md: "2rem" } }}>
             สร้างบัญชีผู้ใช้งาน DI EQA
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 520, lineHeight: 1.6 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: "58ch", lineHeight: 1.7 }}>
             กรอกข้อมูล 4 ขั้นตอนง่ายๆ เพื่อใช้สำหรับจัดส่งเอกสาร ตัวอย่างทดสอบ
             และออกใบประกาศนียบัตร
           </Typography>
         </Stack>
       </Container>
 
-      {/* ─────────── Stepper ─────────── */}
-      <Container maxWidth="md" sx={{ pt: 3 }}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: { xs: 2, sm: 3 },
-            borderRadius: 3,
-            border: "1px solid",
-            borderColor: "divider",
-            bgcolor: "background.paper",
-            mb: 2,
-          }}
-        >
+      {/* ─────────── Step rail ─────────── */}
+      <Container maxWidth="md" sx={{ pt: 4 }}>
+        <PaperCard sx={{ p: { xs: 2, sm: 2.5 }, mb: 2.5 }}>
           {isMobile ? (
             <Stack spacing={1.25}>
-              <Stack
-                direction="row"
-                sx={{ alignItems: "center", justifyContent: "space-between" }}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 700, color: "primary.main" }}>
+              <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: accent.coralInk }}>
                   ขั้นตอนที่ {activeStep + 1} / {STEPS.length}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   {STEPS[activeStep].label}
                 </Typography>
               </Stack>
-              <LinearProgress
-                variant="determinate"
-                value={progressPct}
-                sx={{ height: 8, borderRadius: 4 }}
-              />
+              <LinearProgress variant="determinate" value={progressPct} sx={{ height: 6 }} />
             </Stack>
           ) : (
-            <Stepper activeStep={activeStep} alternativeLabel>
-              {STEPS.map((s, i) => (
-                <Step key={s.label} completed={stepValid(i) && i < activeStep}>
-                  <StepLabel
-                    slotProps={{
-                      label: {
-                        sx: { fontWeight: i === activeStep ? 700 : 500, fontSize: 14 },
-                      },
-                    }}
-                  >
-                    {s.label}
-                  </StepLabel>
-                </Step>
-              ))}
-            </Stepper>
+            <StepRail activeStep={activeStep} stepValid={stepValid} />
           )}
-        </Paper>
+        </PaperCard>
       </Container>
 
       {/* ─────────── Form ─────────── */}
       <Container maxWidth="md">
         <Box component="form" onSubmit={onSubmit} noValidate>
           <Stack spacing={2.5}>
-            {/* ── Step 0: Member type + Hospital ── */}
+            {/* ── Step 0: Member type + hospital ── */}
             {activeStep === 0 && (
               <SectionCard
                 icon={<GroupOutlinedIcon />}
@@ -454,163 +393,112 @@ export default function RegisterPage() {
                 </Grid>
 
                 {memberType === "internal" && (
-                  <Box sx={{ mt: 3 }}>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{ fontWeight: 700, mb: 1.5 }}
-                    >
-                      เลือกโรงพยาบาลของท่าน
-                      <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>
-                        *
-                      </Typography>
-                    </Typography>
-                    <Autocomplete
-                      fullWidth
-                      options={hospitals}
-                      value={hospital}
-                      loading={hospitalsLoading}
-                      disabled={hospitalsLoading}
-                      getOptionLabel={(h) =>
-                        h.name + (h.province ? ` (${h.province})` : "")
-                      }
-                      isOptionEqualToValue={(a, b) => a.id === b.id}
-                      noOptionsText="ไม่พบโรงพยาบาลที่ค้นหา"
-                      loadingText="กำลังโหลดรายชื่อโรงพยาบาล..."
-                      onChange={(_, selected) => {
-                        setHospital(selected);
-                        if (selected) {
-                          auth.setHospital(selected);
-                          setForm((f) => ({
-                            ...f,
-                            clinic: f.clinic || selected.name,
-                            province: f.province || selected.province || "",
-                          }));
-                        }
-                      }}
-                      slotProps={{
-                        paper: {
-                          elevation: 8,
-                          sx: {
-                            mt: 0.5,
-                            borderRadius: 2,
-                            border: "1px solid",
-                            borderColor: "divider",
-                            bgcolor: "background.paper",
-                            boxShadow:
-                              "0 10px 30px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.08)",
-                            overflow: "hidden",
-                          },
-                        },
-                        listbox: {
-                          sx: {
-                            maxHeight: 320,
-                            py: 0.5,
-                            "& .MuiAutocomplete-option": {
-                              borderRadius: 1.5,
-                              mx: 0.5,
-                              my: 0.25,
-                              transition: "background-color .15s",
-                              "&[aria-selected='true']": {
-                                bgcolor: "rgba(30,58,138,0.08)",
-                              },
-                              "&.Mui-focused, &:hover": {
-                                bgcolor: "rgba(30,58,138,0.06)",
-                              },
-                            },
-                          },
-                        },
-                      }}
-                      renderInput={(params) => {
-                        const p = params as any;
-                        const inputSlot = p.slotProps?.input ?? p.InputProps ?? {};
-                        return (
-                          <TextField
-                            {...params}
-                            required
-                            placeholder="พิมพ์ชื่อโรงพยาบาลเพื่อค้นหา..."
-                            slotProps={{
-                              ...p.slotProps,
-                              input: {
-                                ...inputSlot,
-                                startAdornment: (
-                                  <>
-                                    <InputAdornment position="start">
-                                      <LocalHospitalOutlinedIcon
-                                        fontSize="small"
-                                        color="action"
-                                      />
-                                    </InputAdornment>
-                                    {inputSlot.startAdornment}
-                                  </>
-                                ),
-                                endAdornment: (
-                                  <>
-                                    {hospitalsLoading ? (
-                                      <CircularProgress size={16} />
-                                    ) : null}
-                                    {inputSlot.endAdornment}
-                                  </>
-                                ),
-                              },
-                            }}
-                          />
-                        );
-                      }}
-                      renderOption={(props, h) => (
-                        <Box component="li" {...props} key={h.id}>
-                          <Stack
-                            direction="row"
-                            spacing={1.5}
-                            sx={{ alignItems: "center", width: "100%", py: 0.5 }}
-                          >
-                            <Avatar
-                              variant="rounded"
-                              sx={{
-                                width: 32,
-                                height: 32,
-                                bgcolor: "rgba(30,58,138,0.08)",
-                                color: "primary.main",
-                                fontSize: 13,
-                                fontWeight: 700,
+                  <Box sx={{ mt: 3.5 }}>
+                    <FieldShell label="เลือกโรงพยาบาลของท่าน" required>
+                      <Autocomplete
+                        fullWidth
+                        options={hospitals}
+                        value={hospital}
+                        loading={hospitalsLoading}
+                        disabled={hospitalsLoading}
+                        getOptionLabel={(h) => h.name + (h.province ? ` (${h.province})` : "")}
+                        isOptionEqualToValue={(a, b) => a.id === b.id}
+                        noOptionsText="ไม่พบโรงพยาบาลที่ค้นหา"
+                        loadingText="กำลังโหลดรายชื่อโรงพยาบาล..."
+                        onChange={(_, selected) => {
+                          setHospital(selected);
+                          if (selected) {
+                            auth.setHospital(selected);
+                            setForm((f) => ({
+                              ...f,
+                              clinic: f.clinic || selected.name,
+                              province: f.province || selected.province || "",
+                            }));
+                          }
+                        }}
+                        slotProps={{ listbox: { sx: { maxHeight: 320, py: 0 } } }}
+                        renderInput={(params) => {
+                          const p = params as any;
+                          const inputSlot = p.slotProps?.input ?? p.InputProps ?? {};
+                          return (
+                            <TextField
+                              {...params}
+                              required
+                              placeholder="พิมพ์ชื่อโรงพยาบาลเพื่อค้นหา..."
+                              slotProps={{
+                                ...p.slotProps,
+                                input: {
+                                  ...inputSlot,
+                                  startAdornment: (
+                                    <>
+                                      <InputAdornment position="start">
+                                        <LocalHospitalOutlinedIcon fontSize="small" color="action" />
+                                      </InputAdornment>
+                                      {inputSlot.startAdornment}
+                                    </>
+                                  ),
+                                },
                               }}
+                            />
+                          );
+                        }}
+                        renderOption={(props, h) => (
+                          <Box component="li" {...props} key={h.id}>
+                            <Stack
+                              direction="row"
+                              spacing={1.5}
+                              sx={{ alignItems: "center", width: "100%", py: 0.5 }}
                             >
-                              {h.name.charAt(0)}
-                            </Avatar>
-                            <Box sx={{ minWidth: 0, flex: 1 }}>
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 600, lineHeight: 1.3 }}
-                                noWrap
+                              <Box
+                                aria-hidden
+                                sx={{
+                                  width: 30,
+                                  height: 30,
+                                  display: "grid",
+                                  placeItems: "center",
+                                  bgcolor: hexToRgba(accent.coral, 0.12),
+                                  color: accent.coralInk,
+                                  clipPath: chevronCut(8),
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  flexShrink: 0,
+                                }}
                               >
-                                {h.name}
-                              </Typography>
-                              {h.province && (
-                                <Typography variant="caption" color="text.secondary">
-                                  {h.province}
+                                {h.name.charAt(0)}
+                              </Box>
+                              <Box sx={{ minWidth: 0, flex: 1 }}>
+                                <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }} noWrap>
+                                  {h.name}
                                 </Typography>
-                              )}
-                            </Box>
-                          </Stack>
-                        </Box>
-                      )}
-                    />
+                                {h.province && (
+                                  <Typography variant="caption" color="text.secondary">
+                                    {h.province}
+                                  </Typography>
+                                )}
+                              </Box>
+                            </Stack>
+                          </Box>
+                        )}
+                      />
+                    </FieldShell>
+
+                    {hospitalsLoading && (
+                      <Box className="paper-skeleton" sx={{ height: 3, mt: 1 }} />
+                    )}
 
                     {hospital && (
-                      <Paper
-                        elevation={0}
+                      <Box
                         sx={{
                           mt: 2,
                           p: 2,
-                          borderRadius: 2,
-                          border: "1px solid",
-                          borderColor: "success.light",
-                          bgcolor: "rgba(46,160,67,0.06)",
                           display: "flex",
                           alignItems: "center",
                           gap: 1.5,
+                          bgcolor: hexToRgba(accent.sage, 0.22),
+                          borderLeft: `3px solid ${accent.sageDeep}`,
                         }}
                       >
-                        <CheckCircleRoundedIcon color="success" />
+                        <CheckRoundedIcon sx={{ color: accent.sageDeep }} />
                         <Box sx={{ minWidth: 0, flex: 1 }}>
                           <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>
                             {hospital.name}
@@ -621,7 +509,7 @@ export default function RegisterPage() {
                             </Typography>
                           )}
                         </Box>
-                      </Paper>
+                      </Box>
                     )}
                   </Box>
                 )}
@@ -635,10 +523,9 @@ export default function RegisterPage() {
                 title="ข้อมูลส่วนตัวและบัญชีผู้ใช้"
                 subtitle="ใช้สำหรับเข้าสู่ระบบและออกใบประกาศนียบัตร"
               >
-                <Grid container spacing={2}>
+                <Grid container spacing={2.5}>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField
-                      fullWidth
+                    <Field
                       label="ชื่อ"
                       required
                       value={form.firstName}
@@ -655,8 +542,7 @@ export default function RegisterPage() {
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField
-                      fullWidth
+                    <Field
                       label="นามสกุล"
                       required
                       value={form.lastName}
@@ -664,8 +550,7 @@ export default function RegisterPage() {
                     />
                   </Grid>
                   <Grid size={{ xs: 12 }}>
-                    <TextField
-                      fullWidth
+                    <Field
                       label="อีเมล"
                       type="email"
                       placeholder="example@email.com"
@@ -684,8 +569,7 @@ export default function RegisterPage() {
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField
-                      fullWidth
+                    <Field
                       label="ชื่อผู้ใช้"
                       placeholder="เช่น trainee01"
                       required
@@ -705,8 +589,7 @@ export default function RegisterPage() {
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField
-                      fullWidth
+                    <Field
                       label="รหัสผ่าน"
                       placeholder="อย่างน้อย 6 ตัวอักษร"
                       required
@@ -728,7 +611,7 @@ export default function RegisterPage() {
                                 edge="end"
                                 size="small"
                                 tabIndex={-1}
-                                aria-label="toggle password visibility"
+                                aria-label="สลับการแสดงรหัสผ่าน"
                               >
                                 {showPassword ? (
                                   <VisibilityOffOutlinedIcon fontSize="small" />
@@ -742,7 +625,7 @@ export default function RegisterPage() {
                       }}
                     />
                     {form.password && (
-                      <Stack spacing={0.5} sx={{ mt: 1 }}>
+                      <Stack spacing={0.75} sx={{ mt: 1.25 }}>
                         <Stack direction="row" spacing={0.5}>
                           {[0, 1, 2, 3].map((i) => (
                             <Box
@@ -750,12 +633,9 @@ export default function RegisterPage() {
                               sx={{
                                 flex: 1,
                                 height: 4,
-                                borderRadius: 2,
                                 bgcolor:
-                                  i < passwordStrength
-                                    ? `${passwordStrengthColor}.main`
-                                    : "grey.200",
-                                transition: "background-color .2s",
+                                  i < passwordStrength ? `${passwordStrengthColor}.main` : paper.crease,
+                                transition: `background-color ${duration.hover}ms ${easing}`,
                               }}
                             />
                           ))}
@@ -774,7 +654,7 @@ export default function RegisterPage() {
               </SectionCard>
             )}
 
-            {/* ── Step 2: Address & Org ── */}
+            {/* ── Step 2: Org & address ── */}
             {activeStep === 2 && (
               <Stack spacing={2.5}>
                 <SectionCard
@@ -782,10 +662,9 @@ export default function RegisterPage() {
                   title="ข้อมูลหน่วยงาน"
                   subtitle="ข้อมูลคลินิก / ห้องปฏิบัติการ"
                 >
-                  <Grid container spacing={2}>
+                  <Grid container spacing={2.5}>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <TextField
-                        fullWidth
+                      <Field
                         label="คลินิก / หน่วยงาน"
                         placeholder="เช่น รพ.ย่านตาขาว"
                         required
@@ -794,8 +673,7 @@ export default function RegisterPage() {
                       />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <TextField
-                        fullWidth
+                      <Field
                         label="ชื่อห้องปฏิบัติการ"
                         placeholder="เช่น กลุ่มงานเทคนิคการแพทย์"
                         value={form.labName}
@@ -803,9 +681,8 @@ export default function RegisterPage() {
                       />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <TextField
+                      <Field
                         select
-                        fullWidth
                         label="ประเภทโรงพยาบาล / หน่วยงาน"
                         value={form.hospitalType}
                         onChange={set("hospitalType")}
@@ -818,12 +695,11 @@ export default function RegisterPage() {
                             {t}
                           </MenuItem>
                         ))}
-                      </TextField>
+                      </Field>
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <TextField
+                      <Field
                         select
-                        fullWidth
                         label="จำนวนเตียง"
                         value={form.bedSize}
                         onChange={set("bedSize")}
@@ -836,7 +712,7 @@ export default function RegisterPage() {
                             {b}
                           </MenuItem>
                         ))}
-                      </TextField>
+                      </Field>
                     </Grid>
                   </Grid>
                 </SectionCard>
@@ -846,10 +722,9 @@ export default function RegisterPage() {
                   title="ที่อยู่สำหรับจัดส่ง"
                   subtitle="ใช้สำหรับจัดส่งเอกสารและตัวอย่างทดสอบ"
                 >
-                  <Grid container spacing={2}>
+                  <Grid container spacing={2.5}>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <TextField
-                        fullWidth
+                      <Field
                         label="ที่อยู่เลขที่"
                         placeholder="เช่น 293"
                         value={form.addressNo}
@@ -857,8 +732,7 @@ export default function RegisterPage() {
                       />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <TextField
-                        fullWidth
+                      <Field
                         label="ตึก ชั้น ซอย ถนน"
                         placeholder="เช่น ม.1"
                         value={form.building}
@@ -866,69 +740,31 @@ export default function RegisterPage() {
                       />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <TextField
-                        fullWidth
+                      <Field
                         label="แขวง / ตำบล"
                         value={form.subDistrict}
                         onChange={set("subDistrict")}
                       />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="เขต / อำเภอ"
-                        value={form.district}
-                        onChange={set("district")}
-                      />
+                      <Field label="เขต / อำเภอ" value={form.district} onChange={set("district")} />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <Autocomplete
-                        fullWidth
-                        options={THAI_PROVINCES}
-                        value={form.province || null}
-                        onChange={(_, v) =>
-                          setForm((f) => ({ ...f, province: v ?? "" }))
-                        }
-                        slotProps={{
-                          paper: {
-                            elevation: 8,
-                            sx: {
-                              mt: 0.5,
-                              borderRadius: 2,
-                              border: "1px solid",
-                              borderColor: "divider",
-                              bgcolor: "background.paper",
-                              boxShadow:
-                                "0 10px 30px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.08)",
-                              overflow: "hidden",
-                            },
-                          },
-                          listbox: {
-                            sx: {
-                              maxHeight: 320,
-                              py: 0.5,
-                              "& .MuiAutocomplete-option": {
-                                borderRadius: 1.5,
-                                mx: 0.5,
-                                my: 0.25,
-                                "&[aria-selected='true']": {
-                                  bgcolor: "rgba(30,58,138,0.08)",
-                                },
-                                "&.Mui-focused, &:hover": {
-                                  bgcolor: "rgba(30,58,138,0.06)",
-                                },
-                              },
-                            },
-                          },
-                        }}
-                        renderInput={(params) => (
-                          <TextField {...params} label="จังหวัด" placeholder="เลือกจังหวัด" />
-                        )}
-                      />
+                      <FieldShell label="จังหวัด">
+                        <Autocomplete
+                          fullWidth
+                          options={THAI_PROVINCES}
+                          value={form.province || null}
+                          onChange={(_, v) => setForm((f) => ({ ...f, province: v ?? "" }))}
+                          slotProps={{ listbox: { sx: { maxHeight: 320, py: 0 } } }}
+                          renderInput={(params) => (
+                            <TextField {...params} placeholder="เลือกจังหวัด" />
+                          )}
+                        />
+                      </FieldShell>
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <TextField
-                        fullWidth
+                      <Field
                         label="รหัสไปรษณีย์"
                         placeholder="เช่น 92140"
                         value={form.postalCode}
@@ -955,9 +791,8 @@ export default function RegisterPage() {
                   title="ปีออกประกาศนียบัตร"
                   subtitle="เลือกปีที่ต้องการให้ออกใบประกาศนียบัตร"
                 >
-                  <TextField
+                  <Field
                     select
-                    fullWidth
                     label="ปีที่ออกประกาศนียบัตร"
                     value={form.certificateYear}
                     onChange={set("certificateYear")}
@@ -971,7 +806,7 @@ export default function RegisterPage() {
                         {y}
                       </MenuItem>
                     ))}
-                  </TextField>
+                  </Field>
                 </SectionCard>
 
                 <SectionCard
@@ -984,12 +819,7 @@ export default function RegisterPage() {
                       title="ประเภทสมาชิก"
                       onEdit={() => setActiveStep(0)}
                       rows={[
-                        [
-                          "ประเภท",
-                          memberType === "internal"
-                            ? "บุคลากรภายใน"
-                            : "บุคลากรภายนอก",
-                        ],
+                        ["ประเภท", memberType === "internal" ? "บุคลากรภายใน" : "บุคลากรภายนอก"],
                         ...(hospital
                           ? ([
                               ["โรงพยาบาล", hospital.name],
@@ -1017,7 +847,14 @@ export default function RegisterPage() {
                         ["จำนวนเตียง", form.bedSize || "-"],
                         [
                           "ที่อยู่",
-                          [form.addressNo, form.building, form.subDistrict, form.district, form.province, form.postalCode]
+                          [
+                            form.addressNo,
+                            form.building,
+                            form.subDistrict,
+                            form.district,
+                            form.province,
+                            form.postalCode,
+                          ]
                             .filter(Boolean)
                             .join(" ") || "-",
                         ],
@@ -1029,50 +866,53 @@ export default function RegisterPage() {
             )}
 
             {/* ── Inline error ── */}
-            {err && (
-              <Alert severity="error" sx={{ borderRadius: 2 }}>
-                {err}
-              </Alert>
-            )}
+            {err && <Alert severity="error">{err}</Alert>}
           </Stack>
         </Box>
       </Container>
 
-      {/* ─────────── Sticky Action Bar ─────────── */}
+      {/* ─────────── Footer link ─────────── */}
+      <Container maxWidth="md" sx={{ pt: 4 }}>
+        <Box sx={{ borderTop: `1px solid ${paper.crease}`, pt: 3 }}>
+          <Typography variant="body2" align="center" color="text.secondary">
+            มีบัญชีอยู่แล้ว?{" "}
+            <Link component={NextLink} href="/login">
+              เข้าสู่ระบบ
+            </Link>
+          </Typography>
+        </Box>
+      </Container>
+
+      {/* ─────────── Sticky action bar ─────────── */}
       <Box
         sx={{
           position: "fixed",
           left: 0,
           right: 0,
           bottom: 0,
-          zIndex: 20,
-          bgcolor: "rgba(255,255,255,0.92)",
+          zIndex: 200,
+          bgcolor: hexToRgba(paper.sheet, 0.94),
           backdropFilter: "blur(8px)",
-          borderTop: "1px solid",
-          borderColor: "divider",
+          borderTop: `1px solid ${paper.crease}`,
+          boxShadow: foldShadow.lift,
           py: 1.5,
         }}
       >
         <Container maxWidth="md">
-          <Stack
-            direction="row"
-            spacing={1.5}
-            sx={{ alignItems: "center", justifyContent: "space-between" }}
-          >
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", justifyContent: "space-between" }}>
             <Button
               variant="outlined"
               size="large"
               onClick={handleBack}
               disabled={activeStep === 0 || loading}
               startIcon={<ArrowBackOutlinedIcon />}
-              sx={{ fontWeight: 600, textTransform: "none" }}
             >
               {isMobile ? "ก่อนหน้า" : "ขั้นตอนก่อนหน้า"}
             </Button>
 
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
               {!isMobile && (
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ fontFamily: "var(--font-mono)" }}>
                   {activeStep + 1} / {STEPS.length}
                 </Typography>
               )}
@@ -1083,12 +923,7 @@ export default function RegisterPage() {
                   onClick={handleNext}
                   disabled={!stepValid(activeStep)}
                   endIcon={<ArrowForwardOutlinedIcon />}
-                  sx={{
-                    fontWeight: 700,
-                    textTransform: "none",
-                    px: { xs: 2.5, sm: 4 },
-                    boxShadow: "0 8px 20px rgba(30,58,138,0.22)",
-                  }}
+                  sx={{ px: { xs: 2.5, sm: 4 } }}
                 >
                   ถัดไป
                 </Button>
@@ -1100,19 +935,8 @@ export default function RegisterPage() {
                   color="primary"
                   size="large"
                   disabled={loading || !allValid}
-                  startIcon={
-                    loading ? (
-                      <CircularProgress size={18} color="inherit" />
-                    ) : (
-                      <HowToRegOutlinedIcon />
-                    )
-                  }
-                  sx={{
-                    fontWeight: 700,
-                    textTransform: "none",
-                    px: { xs: 2.5, sm: 4 },
-                    boxShadow: "0 10px 24px rgba(30,58,138,0.25)",
-                  }}
+                  startIcon={<HowToRegOutlinedIcon />}
+                  sx={{ px: { xs: 2.5, sm: 4 } }}
                 >
                   {loading ? "กำลังสมัคร..." : "ยืนยันสมัครสมาชิก"}
                 </Button>
@@ -1120,33 +944,81 @@ export default function RegisterPage() {
             </Stack>
           </Stack>
         </Container>
+        {loading && <Box className="paper-skeleton" sx={{ height: 3, mt: 1.5, mb: -1.5 }} />}
       </Box>
 
-      <Snackbar
-        open={success}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        autoHideDuration={1400}
-      >
+      <Snackbar open={success} anchorOrigin={{ vertical: "top", horizontal: "center" }} autoHideDuration={1400}>
         <Alert severity="success" variant="filled" sx={{ fontWeight: 600 }}>
           สมัครสมาชิกสำเร็จ กำลังกลับไปยังหน้าเข้าสู่ระบบ...
         </Alert>
       </Snackbar>
-
-      {/* ─────────── Footer link ─────────── */}
-      <Container maxWidth="md" sx={{ pt: 2 }}>
-        <Divider sx={{ my: 2 }}>หรือ</Divider>
-        <Typography variant="body2" align="center" color="text.secondary">
-          มีบัญชีอยู่แล้ว?{" "}
-          <Link
-            component={NextLink}
-            href="/login"
-            sx={{ fontWeight: 700, color: "primary.main" }}
-          >
-            เข้าสู่ระบบ
-          </Link>
-        </Typography>
-      </Container>
     </Box>
+  );
+}
+
+// ─── Step rail: numbered facets joined by creases ───────────────────────────
+function StepRail({
+  activeStep,
+  stepValid,
+}: {
+  activeStep: number;
+  stepValid: (step: number) => boolean;
+}) {
+  return (
+    <Stack direction="row" sx={{ alignItems: "flex-start" }}>
+      {STEPS.map((s, i) => {
+        const done = stepValid(i) && i < activeStep;
+        const current = i === activeStep;
+        return (
+          <Stack
+            key={s.label}
+            direction="row"
+            sx={{ alignItems: "center", flex: i === STEPS.length - 1 ? "0 0 auto" : 1, minWidth: 0 }}
+          >
+            <Stack spacing={1} sx={{ alignItems: "center", px: 1, minWidth: 0 }}>
+              <Box
+                sx={{
+                  width: 34,
+                  height: 34,
+                  display: "grid",
+                  placeItems: "center",
+                  clipPath: chevronCut(9),
+                  fontSize: "0.875rem",
+                  fontWeight: 700,
+                  transition: `background-color ${duration.hover}ms ${easing}`,
+                  bgcolor: current ? accent.coral : done ? paper.ink : paper.crease,
+                  color: current ? paper.ink : done ? paper.white : paper.steel,
+                }}
+              >
+                {done ? <CheckRoundedIcon sx={{ fontSize: 18 }} /> : i + 1}
+              </Box>
+              <Typography
+                variant="caption"
+                noWrap
+                sx={{
+                  fontWeight: current ? 700 : 500,
+                  color: current ? "text.primary" : "text.secondary",
+                }}
+              >
+                {s.label}
+              </Typography>
+            </Stack>
+            {i < STEPS.length - 1 && (
+              <Box
+                aria-hidden
+                sx={{
+                  flex: 1,
+                  height: 2,
+                  mb: 3,
+                  minWidth: 12,
+                  bgcolor: i < activeStep ? paper.ink : paper.crease,
+                }}
+              />
+            )}
+          </Stack>
+        );
+      })}
+    </Stack>
   );
 }
 
@@ -1163,30 +1035,25 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: { xs: 2.5, sm: 4 },
-        borderRadius: 3,
-        border: "1px solid",
-        borderColor: "divider",
-        bgcolor: "background.paper",
-      }}
-    >
-      <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start", mb: 3 }}>
-        <Avatar
-          variant="rounded"
+    <PaperCard cut={24} sx={{ p: { xs: 2.5, sm: 4 }, ...fadeUp() }}>
+      <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start", mb: 3.5 }}>
+        <Box
+          aria-hidden
           sx={{
             width: 44,
             height: 44,
-            bgcolor: "rgba(30,58,138,0.08)",
-            color: "primary.main",
+            display: "grid",
+            placeItems: "center",
+            bgcolor: hexToRgba(accent.coral, 0.12),
+            color: accent.coralInk,
+            clipPath: chevronCut(11),
+            flexShrink: 0,
           }}
         >
           {icon}
-        </Avatar>
+        </Box>
         <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.25 }}>
             {title}
           </Typography>
           {subtitle && (
@@ -1197,7 +1064,7 @@ function SectionCard({
         </Box>
       </Stack>
       {children}
-    </Paper>
+    </PaperCard>
   );
 }
 
@@ -1216,53 +1083,56 @@ function MemberTypeCard({
   onClick: () => void;
 }) {
   return (
-    <Card
-      elevation={0}
+    <Box
+      component="button"
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
       sx={{
-        borderRadius: 3,
-        border: "2px solid",
-        borderColor: selected ? "primary.main" : "divider",
-        bgcolor: selected ? "rgba(30,58,138,0.04)" : "background.paper",
-        transition: "all .2s",
-        position: "relative",
-        overflow: "hidden",
-        boxShadow: selected ? "0 10px 24px rgba(30,58,138,0.15)" : "none",
+        width: "100%",
+        textAlign: "left",
+        cursor: "pointer",
+        p: { xs: 2, sm: 2.5 },
+        bgcolor: selected ? hexToRgba(accent.coral, 0.07) : paper.sheet,
+        border: `1px solid ${selected ? accent.coral : paper.crease}`,
+        borderLeft: `3px solid ${selected ? accent.coral : paper.crease}`,
+        clipPath: cornerCut(18),
+        boxShadow: selected ? foldShadow.lift : foldShadow.rest,
+        transition: `background-color ${duration.hover}ms ${easing}, box-shadow ${duration.hover}ms ${easing}, transform ${duration.hover}ms ${easing}`,
+        "&:hover": { transform: "translateY(-2px)", boxShadow: foldShadow.lift },
+        "&:active": { transform: "translateY(1px)" },
       }}
     >
-      <CardActionArea onClick={onClick} sx={{ p: { xs: 2, sm: 2.5 } }}>
-        <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-          <Avatar
-            variant="rounded"
-            sx={{
-              width: 48,
-              height: 48,
-              bgcolor: selected ? "primary.main" : "rgba(30,58,138,0.08)",
-              color: selected ? "common.white" : "primary.main",
-              transition: "all .2s",
-            }}
-          >
-            {icon}
-          </Avatar>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{ alignItems: "center", justifyContent: "space-between" }}
-            >
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                {title}
-              </Typography>
-              {selected && (
-                <CheckCircleRoundedIcon color="primary" fontSize="small" />
-              )}
-            </Stack>
-            <Typography variant="body2" color="text.secondary">
-              {description}
+      <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+        <Box
+          aria-hidden
+          sx={{
+            width: 46,
+            height: 46,
+            display: "grid",
+            placeItems: "center",
+            clipPath: chevronCut(11),
+            flexShrink: 0,
+            bgcolor: selected ? accent.coral : hexToRgba(paper.fold, 0.25),
+            color: selected ? paper.ink : paper.steel,
+            transition: `background-color ${duration.hover}ms ${easing}`,
+          }}
+        >
+          {icon}
+        </Box>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between" }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+              {title}
             </Typography>
-          </Box>
-        </Stack>
-      </CardActionArea>
-    </Card>
+            {selected && <CheckRoundedIcon sx={{ fontSize: 18, color: accent.coralInk }} />}
+          </Stack>
+          <Typography variant="body2" color="text.secondary">
+            {description}
+          </Typography>
+        </Box>
+      </Stack>
+    </Box>
   );
 }
 
@@ -1278,33 +1148,21 @@ function ReviewBlock({
 }) {
   return (
     <Box>
-      <Stack
-        direction="row"
-        sx={{ alignItems: "center", justifyContent: "space-between", mb: 1 }}
-      >
-        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-          {title}
-        </Typography>
+      <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.25 }}>
+        <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
+          <Box aria-hidden sx={{ width: 16, height: 3, bgcolor: accent.coral }} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            {title}
+          </Typography>
+        </Stack>
         {onEdit && (
-          <Button
-            size="small"
-            onClick={onEdit}
-            sx={{ textTransform: "none", fontWeight: 600 }}
-          >
+          <Button size="small" onClick={onEdit} startIcon={<EditOutlinedIcon fontSize="small" />}>
             แก้ไข
           </Button>
         )}
       </Stack>
-      <Box
-        sx={{
-          p: 2,
-          borderRadius: 2,
-          border: "1px solid",
-          borderColor: "divider",
-          bgcolor: "grey.50",
-        }}
-      >
-        <Grid container spacing={1.25}>
+      <Box sx={{ p: 2, bgcolor: paper.white, border: `1px solid ${paper.crease}` }}>
+        <Grid container spacing={1.5}>
           {rows.map(([k, v]) => (
             <Grid size={{ xs: 12, sm: 6 }} key={k}>
               <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>

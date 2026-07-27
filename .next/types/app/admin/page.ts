@@ -1,4 +1,4 @@
-// File: /Users/admin/Desktop/project_myseft/di_eqa/frontend/app/admin/page.tsx
+// File: /home/kittiphopso/Desktop/project/di-eqa/di_eqa_frontend/app/admin/page.tsx
 import * as entry from '../../../../app/admin/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

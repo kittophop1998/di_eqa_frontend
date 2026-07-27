@@ -1,10 +1,14 @@
-/* Pure MUI – Tailwind disabled. Keep only minimal global helpers and print styles. */
+/* Origami Geométrico — global creases.
+   Pure MUI for components; this file holds only motion keyframes,
+   a few structural resets, and print styling for the certificate. */
 
 html,
 body {
   margin: 0;
   padding: 0;
   height: 100%;
+  /* No horizontal overflow at any breakpoint. */
+  overflow-x: hidden;
 }
 
 a {
@@ -17,7 +21,59 @@ img {
   height: auto;
 }
 
-/* Pulsing live indicator (used in admin/leaderboard) */
+:focus-visible {
+  outline: 2px solid #ff6b6b;
+  outline-offset: 2px;
+}
+
+/* ── Entry animation: fade + translate-Y (16px → 0), 420ms ease-out ───────── */
+@keyframes fold-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Unfolds along the horizontal crease — used for hero panels. */
+@keyframes fold-open {
+  from {
+    opacity: 0;
+    transform: scaleY(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+/* ── Skeleton shimmer (no circular spinners) ──────────────────────────────── */
+@keyframes crease-shimmer {
+  0% {
+    background-position: -180% 0;
+  }
+  100% {
+    background-position: 180% 0;
+  }
+}
+
+.paper-skeleton {
+  background-color: #f0eeea;
+  background-image: linear-gradient(
+    100deg,
+    rgba(250, 250, 250, 0) 30%,
+    rgba(250, 250, 250, 0.85) 50%,
+    rgba(250, 250, 250, 0) 70%
+  );
+  background-size: 180% 100%;
+  background-repeat: no-repeat;
+  animation: crease-shimmer 1.4s linear infinite;
+}
+
+/* ── Live indicator — a square pulse, not a circular one ──────────────────── */
 .ws-pulse {
   position: relative;
 }
@@ -25,9 +81,8 @@ img {
   content: "";
   position: absolute;
   inset: -3px;
-  border-radius: 9999px;
-  background: rgba(16, 185, 129, 0.45);
-  animation: ws-pulse 1.5s infinite;
+  background: rgba(63, 143, 99, 0.45);
+  animation: ws-pulse 1.6s infinite;
 }
 @keyframes ws-pulse {
   0%,
@@ -36,12 +91,19 @@ img {
     opacity: 0.6;
   }
   50% {
-    transform: scale(1.5);
+    transform: scale(1.7);
     opacity: 0;
   }
 }
 
-/* Certificate print styling — show only the certificate sheet on print. */
+@media (prefers-reduced-motion: reduce) {
+  .ws-pulse::before,
+  .paper-skeleton {
+    animation: none;
+  }
+}
+
+/* ── Certificate print styling — show only the certificate sheet ──────────── */
 @media print {
   @page {
     size: A4 landscape;
