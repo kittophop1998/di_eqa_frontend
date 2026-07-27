@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { api } from "@/lib/api";
-import { auth } from "@/lib/auth";
+import { auth, type UserRole } from "@/lib/auth";
 import { LiveSocket, type WSMessage } from "@/lib/ws";
 import { Eyebrow, PaperCard, PaperSkeleton, SectionHeading, StatusMark } from "@/components/ui";
 import {
@@ -75,7 +75,9 @@ export default function AdminSessionPage() {
       router.replace("/");
       return;
     }
-    if (u.role !== "instructor" && u.role !== "admin") {
+    // Same allow-list as /admin — the backend session routes accept all three.
+    const allowedRoles: UserRole[] = ["instructor", "admin", "super_admin"];
+    if (!allowedRoles.includes(u.role)) {
       router.replace("/dashboard");
       return;
     }
